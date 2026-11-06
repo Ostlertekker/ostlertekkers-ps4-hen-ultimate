@@ -372,12 +372,31 @@ const char* lncErrorText(uint32_t e) {
     }
 }
 
+// The OpenOrbis stub of libSceSystemService does not export the launch
+// functions (header only), so they are resolved at run time from the system
+// module - same pattern as OpenOrbis samples/using_library and Itemzflow's
+// prx_func_loader.
 class Ps4Launcher : public ILauncher {
 public:
     Status launch(const std::string& titleId) override {
-        if (!moduleLoaded_) {
-            const uint32_t m = sceKernelLoadStartModule("/system/common/lib/libSceSystemService.sprx", 0, nullptr, 0, nullptr, nullptr);
-            moduleLoaded_ = static_cast<int32_t>(m) > 0;
+        if (!fn_) {
+            const int32_t mod = static_cast<int32_t>(
+                sceKernelLoadStartModule("/system/common/lib/libSceSystemService.sprx", 0, nullptr, 0, nullptr, nullptr));
+            if (mod < 0) {
+                char hex[16];
+                std::snprintf(hex, sizeof(hex), "0x%08X", static_cast<uint32_t>(mod));
+                return Status::fail(ErrorCode::Unsupported, std::string("libSceSystemService.sprx: ") + hex);
+            }
+            void* addr = nullptr;
+            if (sceKernelDlsym(mod, "sceLncUtilLaunchApp", &addr) == 0 && addr) {
+                fn_ = reinterpret_cast<LaunchFn>(addr);
+                fnName_ = "sceLncUtilLaunchApp";
+            } else if (sceKernelDlsym(mod, "sceSystemServiceLaunchApp", &addr) == 0 && addr) {
+                fn_ = reinterpret_cast<LaunchFn>(addr);
+                fnName_ = "sceSystemServiceLaunchApp";
+            } else {
+                return Status::fail(ErrorCode::Unsupported, "launch function not found in libSceSystemService");
+            }
         }
         int32_t user = -1;
         sceUserServiceGetForegroundUser(&user);
@@ -388,16 +407,18 @@ public:
         param.app_opt = 0;
         param.crash_report = 0;
         param.LaunchAppCheck_flag = LaunchApp_SkipSystemUpdate;
-        const uint32_t r = static_cast<uint32_t>(sceLncUtilLaunchApp(titleId.c_str(), nullptr, &param));
+        const uint32_t r = static_cast<uint32_t>(fn_(titleId.c_str(), nullptr, &param));
         if ((r & 0x80000000u) == 0) return Status::ok();
         char hex[16];
         std::snprintf(hex, sizeof(hex), "0x%08X", r);
         const char* txt = lncErrorText(r);
-        return Status::fail(ErrorCode::IoError, std::string(hex) + (txt ? std::string(" (") + txt + ")" : ""));
+        return Status::fail(ErrorCode::IoError, fnName_ + ": " + hex + (txt ? std::string(" (") + txt + ")" : ""));
     }
 
 private:
-    bool moduleLoaded_ = false;
+    using LaunchFn = int32_t (*)(const char*, const char**, LncAppParam*);
+    LaunchFn fn_ = nullptr;
+    std::string fnName_;
 };
 
 std::unique_ptr<IAudio> createPs4Audio() { return std::unique_ptr<IAudio>(new Ps4Audio); }
