@@ -427,5 +427,11 @@
   "games.cat.gd": "Spiel / App",
   "games.cat.gde": "Systemanwendung",
   "games.cat.gp": "Patch",
-  "games.cat.ac": "Zusatzinhalt"
+  "games.cat.ac": "Zusatzinhalt",
+  "detail.launch": "Spiel starten",
+  "detail.launchSub": "Mit Startanimation · ○ während der Animation bricht ab",
+  "launch.unavailable": "Spiele können hier nicht gestartet werden (nur auf der Konsole).",
+  "launch.failed": "Start fehlgeschlagen:",
+  "launch.starting": "Spiel wird gestartet …",
+  "settings.launchAnim": "Spielstart-Animation"
 }

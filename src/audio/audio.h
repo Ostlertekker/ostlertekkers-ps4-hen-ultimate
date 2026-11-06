@@ -27,6 +27,11 @@ Result<Pcm> decodeWav(const std::string& file, double maxSeconds = 30);
 // animation); deterministic, ~6.5 s.
 Pcm synthBootSound(int variant);
 
+// Short own sound for the game-start animation: riser into an impact at
+// kLaunchHitSeconds plus a bell; variant 0..5 changes the key. ~2.6 s.
+constexpr double kLaunchHitSeconds = 1.55;
+Pcm synthLaunchSound(int variant);
+
 // RIFF/WAVE 16-bit stereo 48 kHz (preview tool, tests).
 std::string encodeWav(const Pcm& pcm);
 

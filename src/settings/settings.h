@@ -33,6 +33,7 @@ struct Settings {
     int backupKeep = 5;
     std::string bootAnimation = "inferno";   // inferno | era1..era5 | random | off
     std::string bootSound = "builtin";       // builtin | custom | off
+    std::string launchAnimation = "inferno"; // game start: inferno | era1..era5 | random | off
 };
 
 // Invalid/unknown values are replaced by defaults (never fails on content);

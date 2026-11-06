@@ -94,6 +94,8 @@ Settings settingsFromJson(const Json& j, std::vector<std::string>* w) {
     s.bootAnimation = pickEnum(boot, "animation", {"inferno", "era1", "era2", "era3", "era4", "era5", "random", "off"},
                                d.bootAnimation, w);
     s.bootSound = pickEnum(boot, "sound", {"builtin", "custom", "off"}, d.bootSound, w);
+    s.launchAnimation = pickEnum(boot, "launchAnimation", {"inferno", "era1", "era2", "era3", "era4", "era5", "random", "off"},
+                                 d.launchAnimation, w);
     return s;
 }
 
@@ -135,6 +137,7 @@ Json settingsToJson(const Settings& s) {
     Json boot = Json::object();
     boot.set("animation", Json::string(s.bootAnimation));
     boot.set("sound", Json::string(s.bootSound));
+    boot.set("launchAnimation", Json::string(s.launchAnimation));
     j.set("boot", boot);
     return j;
 }

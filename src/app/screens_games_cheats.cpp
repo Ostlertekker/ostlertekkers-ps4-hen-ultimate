@@ -279,6 +279,8 @@ void GameDetailScreen::onEnter() {
         it.badgeColor = bc;
         actions_.items.push_back(it);
     };
+    add("launch", app_.t("detail.launch"), app_.t("detail.launchSub"),
+        app_.canLaunch() ? "" : app_.t("common.unavailable"), app_.canLaunch() ? t.ok : t.warn);
     if (!g->homebrew) {
         add("cheats", app_.t("detail.cheats"), app_.t("detail.cheatsSub"),
             std::to_string(files.size()) + " / " + std::to_string(ok) + " " + app_.t("games.matching"), ok ? t.ok : t.textMuted);
@@ -301,6 +303,7 @@ ScreenResult GameDetailScreen::handle(const InputEvent& ev) {
     if (ev.action == Action::Context) { app_.favorites().toggleGame(id_); onEnter(); return ScreenResult::none(); }
     if (ev.action != Action::Confirm) return ScreenResult::none();
     const std::string& k = cur->key;
+    if (k == "launch") { app_.startLaunch(*g); return ScreenResult::none(); }
     if (k == "cheats") { app_.setCheatQuery(id_); return ScreenResult::goTo("cheats"); }
     if (k == "online") return ScreenResult::push(std::unique_ptr<Screen>(new OnlineCheatsScreen(app_, id_)));
     if (k == "import") return ScreenResult::push(std::unique_ptr<Screen>(new CheatImportScreen(app_)));

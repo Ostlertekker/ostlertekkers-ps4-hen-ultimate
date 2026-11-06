@@ -213,6 +213,14 @@ public:
     virtual void restore() = 0;
 };
 
+// Starts an installed application by title id (e.g. a game). On the PS4 the
+// system then brings that app to the foreground.
+class ILauncher {
+public:
+    virtual ~ILauncher() = default;
+    virtual Status launch(const std::string& titleId) = 0;
+};
+
 // RAII helper.
 class ElevatedScope {
 public:
@@ -241,6 +249,7 @@ struct Platform {
     std::unique_ptr<INetwork> net;   // may be null -> network features unavailable
     std::unique_ptr<IAudio> audio;   // may be null -> sound unavailable
     std::unique_ptr<IPrivilege> privilege;   // may be null -> no sandbox escape (desktop)
+    std::unique_ptr<ILauncher> launcher;     // may be null -> games cannot be started
 
     std::string bundleRoot;   // read-only app files (assets), e.g. "/app0"
     std::string dataRoot;     // writable app data, e.g. "/data/OSTLERTEKKERS_HEN"

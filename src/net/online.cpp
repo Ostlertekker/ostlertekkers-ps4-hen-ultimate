@@ -68,7 +68,11 @@ Result<ReleaseInfo> pickNewestRelease(const std::string& text) {
             const std::string name = a.get("name").asString();
             const std::string url = a.get("browser_download_url").asString();
             if (url.compare(0, 8, "https://") != 0) continue;
-            if (name.size() > 4 && name.compare(name.size() - 4, 4, ".pkg") == 0 && info.pkgUrl.empty()) {
+            // Releases can also hold the separate system theme PKG: take the
+            // app (title HENU00001), or the first PKG when none says so.
+            const bool isPkg = name.size() > 4 && name.compare(name.size() - 4, 4, ".pkg") == 0;
+            const bool isApp = name.find("HENU00001") != std::string::npos;
+            if (isPkg && (info.pkgUrl.empty() || (isApp && info.pkgName.find("HENU00001") == std::string::npos))) {
                 info.pkgName = name;
                 info.pkgUrl = url;
                 info.pkgSize = static_cast<uint64_t>(a.get("size").asNumber(0));

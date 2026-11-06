@@ -304,6 +304,9 @@ void SettingsScreen::change(int delta) {
             s.bootAnimation = cycle({"inferno", "era1", "era2", "era3", "era4", "era5", "random", "off"}, s.bootAnimation);
             break;
         case BootSound: s.bootSound = cycle({"builtin", "custom", "off"}, s.bootSound); break;
+        case LaunchAnim:
+            s.launchAnimation = cycle({"inferno", "era1", "era2", "era3", "era4", "era5", "random", "off"}, s.launchAnimation);
+            break;
         case Volume:
             s.volume = std::max(0, std::min(100, (s.volume / 10) * 10 + delta * 10));
             s.soundEnabled = s.volume > 0;
@@ -352,7 +355,7 @@ ScreenResult SettingsScreen::handle(const InputEvent& ev) {
 }
 
 void SettingsScreen::update(const UiContext& ctx) {
-    highlightTarget_ = 330.f + focus_ * 66.f;
+    highlightTarget_ = 330.f + focus_ * 60.f;
     highlightY_ = (highlightY_ < 0 || !ctx.animate) ? highlightTarget_
                                                      : approach(highlightY_, highlightTarget_, ctx.dt, 18.f * ctx.animSpeed);
     if (std::fabs(highlightY_ - highlightTarget_) < 0.3f) highlightY_ = highlightTarget_;
@@ -368,7 +371,7 @@ void SettingsScreen::draw(const UiContext& ctx) {
 
     drawPageHeader(ctx, app_, app_.t("module.settings"), app_.t("settings.sub"));
 
-    const float listW = 1100, rowY0 = 330, rowStep = 66, rowH = 58;
+    const float listW = 1100, rowY0 = 330, rowStep = 60, rowH = 54;
     const bool hasWav = app_.sysFs().exists(app_.customBootSoundPath());
     std::string values[RowCount] = {
         s.language == "de" ? "Deutsch" : "English",
@@ -378,13 +381,15 @@ void SettingsScreen::draw(const UiContext& ctx) {
         s.bootAnimation == "random" || s.bootAnimation == "off" ? app_.t("settings.boot." + s.bootAnimation)
                                                                 : app_.t("boot.style." + s.bootAnimation),
         app_.t("settings.sound." + s.bootSound) + (s.bootSound == "custom" && !hasWav ? " (" + app_.t("settings.wav.missing") + ")" : ""),
+        s.launchAnimation == "random" || s.launchAnimation == "off" ? app_.t("settings.boot." + s.launchAnimation)
+                                                                    : app_.t("boot.style." + s.launchAnimation),
         s.volume == 0 ? app_.t("settings.volumeOff") : std::to_string(s.volume) + " %",
         "",
         hasWav ? app_.t("settings.wav.present") : "",
         resetArmed_ ? app_.t("settings.resetArmed") : "",
     };
     const char* labels[RowCount] = {"settings.language", "settings.theme", "settings.animations",
-                                    "settings.confirmButton", "settings.bootAnim", "settings.bootSound",
+                                    "settings.confirmButton", "settings.bootAnim", "settings.bootSound", "settings.launchAnim",
                                     "settings.volume", "settings.bootPreview", "settings.importWav", "settings.reset"};
 
     Rect hl{kMarginX, highlightY_, listW, rowH};

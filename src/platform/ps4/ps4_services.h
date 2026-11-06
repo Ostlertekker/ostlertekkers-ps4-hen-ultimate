@@ -11,5 +11,6 @@ namespace henu {
 std::unique_ptr<IAudio> createPs4Audio();
 std::unique_ptr<IPrivilege> createPs4Privilege();
 std::unique_ptr<INetwork> createPs4Network(std::string& err);   // null on failure
+std::unique_ptr<ILauncher> createPs4Launcher();
 
 }  // namespace henu

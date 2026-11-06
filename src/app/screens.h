@@ -63,8 +63,8 @@ public:
     int focusIndex() const { return focus_; }
 
 private:
-    enum Row { Language, ThemeRow, Animations, ConfirmButton, BootAnim, BootSound, Volume, BootPreview, ImportWav,
-               Reset, RowCount };
+    enum Row { Language, ThemeRow, Animations, ConfirmButton, BootAnim, BootSound, LaunchAnim, Volume, BootPreview,
+               ImportWav, Reset, RowCount };
     void importWav();
     void change(int delta);
     int focus_ = 0;

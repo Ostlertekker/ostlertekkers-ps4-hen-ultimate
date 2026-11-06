@@ -427,5 +427,11 @@
   "games.cat.gd": "Game / app",
   "games.cat.gde": "System app",
   "games.cat.gp": "Patch",
-  "games.cat.ac": "Add-on"
+  "games.cat.ac": "Add-on",
+  "detail.launch": "Start game",
+  "detail.launchSub": "With start animation · ○ during the animation cancels",
+  "launch.unavailable": "Games cannot be started here (console only).",
+  "launch.failed": "Start failed:",
+  "launch.starting": "Starting game …",
+  "settings.launchAnim": "Game start animation"
 }

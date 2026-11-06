@@ -20,6 +20,11 @@ PREVIEW_SRC := tools/preview/preview_main.cpp
 PREVIEW_OBJS := $(patsubst %.cpp,$(BUILD)/%.o,$(CORE_SRC) $(PREVIEW_SRC))
 TEST_OBJS_EXTRA :=
 
+# Experimental PS4 system theme (content only; PKG: see Makefile target theme-pkg)
+THEME_SRC := tools/theme/make_theme.cpp
+THEME_OBJS := $(patsubst %.cpp,$(BUILD)/%.o,$(filter-out src/app/%,$(CORE_SRC)) $(THEME_SRC))
+THEME_CONTENT_ID ?= IV0000-HENT00001_00-OSTLERTEKKERS000
+
 # Desktop app with SDL2 (macOS: brew install sdl2 pkg-config). Shows exactly the
 # pixels of the PS4 build (same software renderer).
 SDL_CFLAGS = $(shell pkg-config --cflags sdl2 2>/dev/null)
@@ -27,7 +32,7 @@ SDL_LIBS   = $(shell pkg-config --libs sdl2 2>/dev/null)
 APP_OBJS := $(patsubst %.cpp,$(BUILD)/%.o,$(filter-out src/app/main.cpp,$(CORE_SRC))) \
             $(BUILD)/desktop/main.o $(BUILD)/desktop/sdl_platform.o
 
-.PHONY: test clean preview app
+.PHONY: test clean preview app theme
 test: $(BUILD)/run_tests
 	./$(BUILD)/run_tests
 
@@ -40,6 +45,14 @@ preview: $(BUILD)/preview
 	./$(BUILD)/preview . build/preview-root build/preview
 
 $(BUILD)/preview: $(PREVIEW_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ -pthread
+
+theme: $(BUILD)/make_theme
+	rm -rf build/theme && mkdir -p build/theme
+	./$(BUILD)/make_theme . build/theme $(THEME_CONTENT_ID)
+	python3 scripts/compress_png.py build/theme
+
+$(BUILD)/make_theme: $(THEME_OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ -pthread
 
 app: $(BUILD)/henu-desktop

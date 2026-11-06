@@ -274,7 +274,21 @@ void App::goToSection(size_t index) {
     top().onEnter();
 }
 
-void App::inject(const InputEvent& ev) { handle(ev); }
+void App::inject(const InputEvent& ev) {
+    if (launch_) {   // same rules as real input during the start animation
+        if (ev.action == Action::Back && !launchRequested_) cancelLaunch();
+        return;
+    }
+    handle(ev);
+}
+
+void App::cancelLaunch() {
+    if (!launch_) return;
+    if (platform_.audio) platform_.audio->stop();
+    log_.info("launch cancelled: " + launch_->titleId());
+    launch_.reset();
+    dirty_ = true;
+}
 
 void App::handle(const InputEvent& ev) {
     dirty_ = true;
@@ -323,6 +337,24 @@ void App::startBoot(const std::string& setting) {
     dirty_ = true;
 }
 
+void App::startLaunch(const GameInfo& g) {
+    if (!platform_.launcher) { toast(t("launch.unavailable")); return; }
+    log_.info("launch requested: " + g.titleId);
+    std::string style = resolveBootStyle(settings_.launchAnimation, static_cast<unsigned>(time_ * 1000));
+    launchRequested_ = false;
+    launchStatus_.clear();
+    launchStart_ = time_;
+    if (style.empty()) style = "inferno";   // "off": no animation, but the black frame is still drawn
+    launch_.reset(new LaunchSequence(style, g.name, g.titleId, iconTexture(g)));
+    if (settings_.launchAnimation == "off") launchStart_ = time_ - launch_->launchAt();
+    else if (platform_.audio && settings_.soundEnabled) {
+        Pcm pcm = synthLaunchSound(bootSoundVariant(style));
+        applyVolume(pcm, settings_.volume / 100.0f);
+        platform_.audio->playStereo48k(std::move(pcm.samples));
+    }
+    dirty_ = true;
+}
+
 void App::playBootSound(const std::string& styleId) {
     if (!platform_.audio || !settings_.soundEnabled || settings_.bootSound == "off") return;
     Pcm pcm;
@@ -365,6 +397,41 @@ bool App::frame(float dt) {
             return !quit_;
         }
         events.clear();
+    }
+    if (launch_) {
+        double lt = time_ - launchStart_;
+        if (!launchRequested_)
+            for (const auto& ev : events)
+                if (ev.action == Action::Back) {
+                    cancelLaunch();
+                    return !quit_;
+                }
+        IRenderer& r = *platform_.renderer;
+        r.beginFrame({0, 0, 0, 255});
+        launch_->draw(r, fonts_, lt, launchStatus_);
+        r.endFrame();
+        drawn_ = true;
+        if (lt >= launch_->launchAt() && !launchRequested_) {
+            launchRequested_ = true;
+            Status st = platform_.launcher ? platform_.launcher->launch(launch_->titleId())
+                                           : Status::fail(ErrorCode::Unsupported, "no launcher");
+            if (!st) {
+                log_.error("launch " + launch_->titleId() + " failed: " + st.error().message);
+                launch_.reset();
+                toast(t("launch.failed") + " " + st.error().message);
+                dirty_ = true;
+                return !quit_;
+            }
+            log_.info("launch " + launch_->titleId() + ": ok");
+            launchStatus_ = t("launch.starting");
+        }
+        // The system switches to the game; if we are still here after a while
+        // (e.g. the user returned), go back to the menu.
+        if (launchRequested_ && lt > launch_->launchAt() + 6) {
+            launch_.reset();
+            dirty_ = true;
+        }
+        return !quit_;
     }
     for (const auto& ev : events) handle(ev);
 

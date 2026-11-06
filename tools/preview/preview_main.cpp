@@ -66,6 +66,11 @@ private:
     std::string pkg_;
 };
 
+class DemoLauncher : public ILauncher {
+public:
+    Status launch(const std::string&) override { return Status::ok(); }
+};
+
 // Demo values for screenshots only (the PS4 build queries the real system).
 class DemoSystem : public ISystemInfo {
 public:
@@ -148,6 +153,7 @@ int main(int argc, char** argv) {
     p.input.reset(new NoInput);
     p.system.reset(new DemoSystem);
     p.net.reset(new DemoNet);
+    p.launcher.reset(new DemoLauncher);
     p.bundleRoot = bundle;
     p.sysRoot = sysRoot;
     p.dataRoot = "/data/OSTLERTEKKERS_HEN";
@@ -186,7 +192,9 @@ int main(int argc, char** argv) {
     capture("home");
     section("games");          capture("games");
     press(Action::Down, 4);    press(Action::Confirm);           capture("game_detail");
-    press(Action::Down);       press(Action::Confirm);
+    press(Action::Confirm);    settle(8);                        capture("game_launch");
+    press(Action::Back);       // cancels the start animation
+    press(Action::Down, 2);    press(Action::Confirm);
     press(Action::Confirm);                                      capture("online_consent");
     press(Action::Left);       press(Action::Confirm);   settle(30);   capture("online_cheats");
     section("cheats");         capture("cheats_all");

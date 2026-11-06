@@ -78,6 +78,24 @@ int bootSoundVariant(const std::string& id) {
 
 BootSequence::BootSequence(std::string styleId) : style_(std::move(styleId)) {}
 
+void BootSequence::drawBackdrop(IRenderer& r, double t) const {
+    if (style_ == "era1") drawPolygon(r, t);
+    else if (style_ == "era2") drawFog(r, t);
+    else if (style_ == "era3") drawWaves(r, t);
+    else if (style_ == "era4") drawTrails(r, t);
+    else if (style_ == "era5") drawGleam(r, t);
+    else drawInferno(r, t);
+}
+
+Color BootSequence::accent() const {
+    if (style_ == "era1") return {255, 196, 60, 255};
+    if (style_ == "era2") return {120, 170, 255, 255};
+    if (style_ == "era3") return {255, 170, 90, 255};
+    if (style_ == "era4") return {90, 200, 255, 255};
+    if (style_ == "era5") return {200, 200, 210, 255};
+    return {255, 80, 70, 255};
+}
+
 void BootSequence::draw(IRenderer& r, const Fonts& f, double t) const {
     Color text{255, 255, 255, 255}, accent{255, 80, 70, 255};
     if (style_ == "era1") { drawPolygon(r, t); accent = {255, 196, 60, 255}; }

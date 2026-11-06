@@ -270,27 +270,34 @@ void Canvas::drawImage(const uint32_t* px, int iw, int ih, const Rect& dst, floa
     const int y0 = std::max(cy0_, static_cast<int>(std::floor(dst.y)));
     const int x1 = std::min(w_, static_cast<int>(std::ceil(dst.x + dst.w)));
     const int y1 = std::min(cy1_, static_cast<int>(std::ceil(dst.y + dst.h)));
+    if (x1 <= x0 || y1 <= y0) return;
     const float rad = std::max(0.f, std::min(radius, std::min(dst.w, dst.h) / 2));
     const float sx = iw / dst.w, sy = ih / dst.h;
     const int a255 = static_cast<int>(std::min(1.f, alpha) * 255 + 0.5f);
+    // Source x in 16.16 fixed point, stepped per pixel.
+    const int64_t fxStep = static_cast<int64_t>(sx * 65536.0f);
+    const int64_t fxStart = static_cast<int64_t>(((x0 + 0.5f - dst.x) * sx - 0.5f) * 65536.0f);
     for (int y = y0; y < y1; ++y) {
         float l = dst.x, r = dst.x + dst.w;
         if (rad > 0) span(dst.x, dst.y, dst.x + dst.w, dst.y + dst.h, rad, y + 0.5f, l, r);
         if (l >= r) continue;
         const float fy = (y + 0.5f - dst.y) * sy - 0.5f;
-        const int iy = std::max(0, std::min(ih - 1, static_cast<int>(std::floor(fy))));
+        const float fyf = std::floor(fy);
+        const int iy = std::max(0, std::min(ih - 1, static_cast<int>(fyf)));
         const int iy2 = std::min(ih - 1, iy + 1);
-        const int wy = static_cast<int>((fy - std::floor(fy)) * 256) & 255;
+        const int wy = static_cast<int>((fy - fyf) * 256) & 255;
+        const uint32_t* row0 = px + static_cast<size_t>(iy) * iw;
+        const uint32_t* row1 = px + static_cast<size_t>(iy2) * iw;
         uint32_t* row = &p_[static_cast<size_t>(y) * w_];
-        for (int x = x0; x < x1; ++x) {
-            const float xc = x + 0.5f;
-            if (xc < l || xc > r) continue;
-            const float fx = (xc - dst.x) * sx - 0.5f;
-            const int ix = std::max(0, std::min(iw - 1, static_cast<int>(std::floor(fx))));
+        const int xa = std::max(x0, static_cast<int>(std::ceil(l - 0.5f)));
+        const int xb = std::min(x1, static_cast<int>(std::floor(r - 0.5f)) + 1);
+        int64_t fx = fxStart + fxStep * (xa - x0);
+        for (int x = xa; x < xb; ++x, fx += fxStep) {
+            const int64_t fxi = fx >> 16;   // floor (arithmetic shift)
+            const int ix = static_cast<int>(std::max<int64_t>(0, std::min<int64_t>(iw - 1, fxi)));
             const int ix2 = std::min(iw - 1, ix + 1);
-            const int wx = static_cast<int>((fx - std::floor(fx)) * 256) & 255;
-            const uint32_t p00 = px[static_cast<size_t>(iy) * iw + ix], p10 = px[static_cast<size_t>(iy) * iw + ix2];
-            const uint32_t p01 = px[static_cast<size_t>(iy2) * iw + ix], p11 = px[static_cast<size_t>(iy2) * iw + ix2];
+            const int wx = static_cast<int>((fx >> 8) & 255);
+            const uint32_t p00 = row0[ix], p10 = row0[ix2], p01 = row1[ix], p11 = row1[ix2];
             auto ch = [&](int shift) {
                 const int a = (p00 >> shift) & 0xFF, b = (p10 >> shift) & 0xFF;
                 const int c0 = (p01 >> shift) & 0xFF, d = (p11 >> shift) & 0xFF;

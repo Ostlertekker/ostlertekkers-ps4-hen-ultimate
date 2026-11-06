@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.6.0 – Spielstart mit Animation, System-Theme (2026-11-06), PKG-Version 01.04
+
+### Hinzugefügt
+- **Spiele starten** von der Spielseite („Spiel starten“): eigene Startanimation (Kulisse des gewählten Stils, Spiel-Icon, rotierendes Pentagramm, Lichtstrahlen, Aufprall-Blitz) mit eigenem Klang, danach startet das Spiel über `sceLncUtilLaunchApp` (Aufrufweise wie Itemzflow). ○ bricht während der Animation ab; Fehler werden mit Code und Klartext angezeigt
+- Einstellung **Spielstart-Animation** (6 Stile, Zufall, aus)
+- **PS4-System-Theme „OSTLERTEKKERS HEN“** als eigenes, experimentelles PKG (`docs/SYSTEM_THEME.md`)
+
+### Geändert
+- Bild-Skalierung (Icons) mit Festkomma-Schritten, Kulisse der Startanimation wird als Ebene zwischengespeichert: langsamstes Startbild 86 ms → 11 ms (einkernig, PC)
+- Online-Updater wählt im Release gezielt das App-PKG, auch wenn dort weitere PKGs liegen
+
+### Nicht umgesetzt
+- **Autostart mit GoldHEN**: GoldHEN hat dafür keinen dokumentierten Weg (Plugins laden nur beim Start eines Spiels/einer App); ein Eingriff in GoldHEN ist ausgeschlossen
+
 ## v0.5.1 – Spiele-Erkennung, flüssiges Intro (2026-11-06), PKG-Version 01.03
 
 ### Behoben

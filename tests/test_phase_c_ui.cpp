@@ -6,6 +6,7 @@
 #include <string>
 
 #include "app/app.h"
+#include "games/game_library.h"
 #include "check.h"
 #include "platform/posix_fs.h"
 #include "themes/theme_catalog.h"
@@ -244,6 +245,9 @@ static void testSettingsPersist() {
         t.press(Action::Right);                  // sound builtin -> custom
         CHECK(t.app->settings().bootSound == "custom");
         t.press(Action::Down);
+        t.press(Action::Right);                  // game start animation inferno -> era1
+        CHECK(t.app->settings().launchAnimation == "era1");
+        t.press(Action::Down);
         t.press(Action::Left);                   // volume 70 -> 60
         CHECK(t.app->settings().volume == 60);
     }
@@ -278,7 +282,53 @@ static void testMissingAssets() {
     CHECK(!t.app->log().recent().empty());
 }
 
+namespace {
+struct FakeLauncher : ILauncher {
+    std::vector<std::string> calls;
+    bool fail = false;
+    Status launch(const std::string& id) override {
+        calls.push_back(id);
+        return fail ? Status::fail(ErrorCode::IoError, "0x80940031 (app not found in the app database)") : Status::ok();
+    }
+};
+}  // namespace
+
+static void testGameLaunch() {
+    TestApp t(freshDataDir("launch"));
+    auto* fl = new FakeLauncher;
+    t.p.launcher.reset(fl);
+    CHECK(t.app->init().isOk());
+    for (int i = 0; i < 600 && t.app->booting(); ++i) t.app->frame(1.0f / 60);   // let the intro finish
+    CHECK(t.app->canLaunch());
+    GameInfo g;
+    g.titleId = "CUSA00001";
+    g.name = "Test Game";
+    // success: launcher called once, at launchAt(), not before
+    t.app->startLaunch(g);
+    CHECK(t.app->launching());
+    for (int i = 0; i < 60; ++i) t.app->frame(1.0f / 60);    // 1 s
+    CHECK(fl->calls.empty());
+    for (int i = 0; i < 120; ++i) t.app->frame(1.0f / 60);   // +2 s
+    CHECK(fl->calls.size() == 1 && fl->calls[0] == "CUSA00001");
+    for (int i = 0; i < 480; ++i) t.app->frame(1.0f / 60);   // still in the app after 8 s -> back to menu
+    CHECK(!t.app->launching() && fl->calls.size() == 1);
+    // failure: back to the menu with a toast
+    fl->fail = true;
+    t.app->startLaunch(g);
+    for (int i = 0; i < 180; ++i) t.app->frame(1.0f / 60);
+    CHECK(!t.app->launching() && fl->calls.size() == 2);
+    // cancel with circle before the start
+    fl->fail = false;
+    t.app->startLaunch(g);
+    t.app->frame(1.0f / 60);
+    t.press(Action::Back);
+    CHECK(!t.app->launching());
+    for (int i = 0; i < 180; ++i) t.app->frame(1.0f / 60);
+    CHECK(fl->calls.size() == 2);
+}
+
 void runPhaseCUiTests() {
+    testGameLaunch();
     testInputMapper();
     testFocus();
     testBundledThemes();

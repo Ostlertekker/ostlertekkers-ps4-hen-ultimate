@@ -206,6 +206,63 @@ Pcm synthBootSound(int variant) {
     return out;
 }
 
+Pcm synthLaunchSound(int variant) {
+    static const int roots[6] = {45, 43, 41, 40, 47, 38};
+    const int v = ((variant % 6) + 6) % 6;
+    const int root = roots[v];
+    const double dur = 2.6, hit = kLaunchHitSeconds;
+    const size_t n = static_cast<size_t>(dur * kAudioRate);
+    std::vector<double> L(n, 0.0), Rch(n, 0.0);
+    Rng rng(0x1A0C + static_cast<uint32_t>(v));
+    double lp = 0, ph = 0;
+    for (size_t i = 0; i < n; ++i) {
+        const double t = static_cast<double>(i) / kAudioRate;
+        // rising filtered noise with a pitched sweep underneath
+        if (t < hit) {
+            const double e = std::pow(t / hit, 2.4);
+            const double a = 1 - std::exp(-kTwoPi * (200 + 7000 * e) / kAudioRate);
+            lp += a * (rng.next() - lp);
+            ph += kTwoPi * noteHz(root + 12 + 24 * e) / kAudioRate;
+            const double s = lp * e * 0.16 + std::sin(ph) * e * 0.05;
+            const double pan = 0.5 + 0.4 * std::sin(t * 9);
+            L[i] += s * (1 - pan) * 2; Rch[i] += s * pan * 2;
+        } else {
+            const double tt = t - hit;
+            // impact: pitched-down sine kick + noise burst
+            const double kick = std::tanh(std::sin(kTwoPi * (50 * tt + 140 * (1 - std::exp(-tt * 30)) / 30)) * 2.5) *
+                                std::exp(-tt * 4.0) * 0.5;
+            const double burst = rng.next() * std::exp(-tt * 18) * 0.18;
+            // bell, root two octaves up (inharmonic partials)
+            double bell = 0;
+            const double ratios[3] = {1.0, 2.76, 5.4}, amps[3] = {1.0, 0.4, 0.18};
+            for (int k = 0; k < 3; ++k)
+                bell += std::sin(kTwoPi * noteHz(root + 24) * ratios[k] * tt) * amps[k] * std::exp(-tt * (2.0 + k * 1.5));
+            bell *= 0.16 * std::min(1.0, tt * 300);
+            L[i] += kick + burst + bell * 0.8; Rch[i] += kick + burst * 0.9 + bell;
+        }
+    }
+    const size_t dl = static_cast<size_t>(0.23 * kAudioRate), dr = static_cast<size_t>(0.29 * kAudioRate);
+    for (size_t i = 0; i < n; ++i) {
+        if (i >= dl) L[i] += Rch[i - dl] * 0.3;
+        if (i >= dr) Rch[i] += L[i - dr] * 0.3;
+    }
+    double peak = 1e-9;
+    for (size_t i = 0; i < n; ++i) {
+        const double t = static_cast<double>(i) / kAudioRate;
+        const double fade = t > dur - 0.5 ? (dur - t) / 0.5 : 1.0;
+        L[i] *= fade; Rch[i] *= fade;
+        peak = std::max(peak, std::max(std::fabs(L[i]), std::fabs(Rch[i])));
+    }
+    const double gain = 0.89 / peak;
+    Pcm out;
+    out.samples.resize(n * 2);
+    for (size_t i = 0; i < n; ++i) {
+        out.samples[i * 2] = static_cast<int16_t>(std::lround(L[i] * gain * 32767));
+        out.samples[i * 2 + 1] = static_cast<int16_t>(std::lround(Rch[i] * gain * 32767));
+    }
+    return out;
+}
+
 std::string encodeWav(const Pcm& pcm) {
     std::string s;
     auto put32 = [&](uint32_t v) { for (int i = 0; i < 4; ++i) s += static_cast<char>((v >> (8 * i)) & 0xFF); };

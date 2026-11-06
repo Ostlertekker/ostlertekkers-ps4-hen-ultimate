@@ -51,7 +51,7 @@ Kachel im Startbildschirm → OPTIONS → Löschen. Die Einstellungen bleiben in
 
 ## Status
 
-Diese Version (01.02 / v0.5.0) heißt **OSTLERTEKKERS HEN**. Auf der Konsole bestätigt sind bisher Start, Navigation, Controller, Bildausgabe und Einstellungen. Neu und **noch nicht auf einer echten PS4 getestet**: Start-Intro mit Ton, Internet (Cheat-Download, Updater), Einlesen der installierten Spiele über das GoldHEN-SDK, Bearbeiten von Cheats.
+Diese Version (01.04 / v0.6.0) heißt **OSTLERTEKKERS HEN**. Neu: Spiele aus der App starten (mit Startanimation). Im Release liegt zusätzlich ein experimentelles PS4-System-Theme als eigenes PKG – siehe `docs/SYSTEM_THEME.md`. Auf der Konsole bestätigt sind bisher Start, Navigation, Controller, Bildausgabe und Einstellungen. Neu und **noch nicht auf einer echten PS4 getestet**: Start-Intro mit Ton, Internet (Cheat-Download, Updater), Einlesen der installierten Spiele über das GoldHEN-SDK, Bearbeiten von Cheats.
 
 Eingeschränkt (in der App gekennzeichnet):
 - Cheats werden verwaltet, bearbeitet und geladen; **ein- und ausgeschaltet werden sie im Spiel über das GoldHEN-Menü**.

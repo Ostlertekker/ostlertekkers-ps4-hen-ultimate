@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "app/boot.h"
+#include "app/launch.h"
 #include "app/favorites.h"
 #include "cheats/cheat_db.h"
 #include "core/capability.h"
@@ -37,7 +38,7 @@ struct AppOptions {
     bool bootSequence = false;   // play the boot animation + sound after init (main sets it)
 };
 
-constexpr const char* kAppVersion = "0.5.1";
+constexpr const char* kAppVersion = "0.6.0";
 #ifndef HENU_BUILD
 #define HENU_BUILD 0
 #endif
@@ -99,6 +100,11 @@ public:
     // setting: inferno | era1..era5 | random | off (also used as preview from settings)
     void startBoot(const std::string& setting);
     bool booting() const { return boot_ != nullptr; }
+    // Game start: animation (setting launchAnimation), then ILauncher.
+    bool canLaunch() const { return platform_.launcher != nullptr; }
+    void startLaunch(const GameInfo& g);
+    bool launching() const { return launch_ != nullptr; }
+    void cancelLaunch();
     void playBootSound(const std::string& styleId);
     std::string customBootSoundPath() const { return platform_.dataRoot + "/boot.wav"; }
     IAudio* audio() { return platform_.audio.get(); }
@@ -157,6 +163,10 @@ private:
     bool toastShown_ = false;
     bool migrated_ = false;
     std::unique_ptr<BootSequence> boot_;
+    std::unique_ptr<LaunchSequence> launch_;
+    double launchStart_ = 0;
+    bool launchRequested_ = false;
+    std::string launchStatus_;
     double bootStart_ = 0;
     std::string gameScanNote_;
     std::map<std::string, TextureId> icons_;

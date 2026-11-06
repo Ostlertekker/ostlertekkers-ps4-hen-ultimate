@@ -31,6 +31,10 @@ public:
     bool finished(double t) const { return t >= duration(); }
     // Draws the complete frame (no app chrome) for time t since start.
     void draw(IRenderer& r, const Fonts& f, double t) const;
+    // Only the style's animated scenery (no brand text, no fade).
+    void drawBackdrop(IRenderer& r, double t) const;
+    // Signature colour of the style.
+    Color accent() const;
 
 private:
     void drawInferno(IRenderer& r, double t) const;

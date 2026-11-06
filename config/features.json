@@ -23,7 +23,7 @@
       "id": "games",
       "order": 2,
       "status": "unverified",
-      "note": "read-only via GoldHEN SDK; detail page per game"
+      "note": "read-only via GoldHEN SDK; detail page; start games via sceLncUtilLaunchApp (not tested on console)"
     },
     {
       "id": "cheats",

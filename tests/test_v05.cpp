@@ -141,6 +141,12 @@ static void testOnlineParsing() {
         CHECK(r.value().build == 13 && r.value().pkgName == "IV0000-X.pkg" && r.value().pkgSize == 8000000);
         CHECK(r.value().sumsUrl.find("SHA256SUMS.txt") != std::string::npos);
     }
+    // theme PKG listed first: the app PKG is still chosen
+    const std::string rel2 = R"([{"tag_name": "build-20", "draft": false, "assets": [
+        {"name": "IV0000-HENT00001_00-OSTLERTEKKERS000.pkg", "size": 5, "browser_download_url": "https://x/theme.pkg"},
+        {"name": "IV0000-HENU00001_00-PS4HENULTIMATE00.pkg", "size": 9, "browser_download_url": "https://x/app.pkg"}]}])";
+    auto r2 = pickNewestRelease(rel2);
+    CHECK(r2.isOk() && r2.value().pkgUrl == "https://x/app.pkg" && r2.value().pkgSize == 9);
     CHECK(!pickNewestRelease("[]").isOk());
     CHECK(!pickNewestRelease("not json").isOk());
 

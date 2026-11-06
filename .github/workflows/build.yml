@@ -77,6 +77,36 @@ jobs:
       - name: Build eboot.bin, param.sfo, PKG
         run: make OO_CXX=clang++-18 OO_LD=ld.lld-18 HENU_BUILD=${{ github.run_number }}
 
+      # Separate, EXPERIMENTAL package: a PS4 home-screen theme. It must never
+      # block the app PKG, hence continue-on-error. See docs/SYSTEM_THEME.md.
+      - name: Build experimental PS4 system theme (separate PKG)
+        continue-on-error: true
+        run: |
+          set -e
+          git init -q /tmp/lop
+          git -C /tmp/lop fetch -q --depth 1 https://github.com/OpenOrbis/LibOrbisPkg 92a4e7f8e5914cb06b52ba3ae6b0675da438a051
+          git -C /tmp/lop checkout -q FETCH_HEAD
+          python3 scripts/patch_liborbispkg_theme.py /tmp/lop
+          dotnet build -c Release -o /tmp/pkgtool-theme /tmp/lop/PkgTool.Core/PkgTool.Core.csproj
+          make -f Makefile.host CXX=g++ CXXFLAGS="-std=c++17 -O2 -Isrc -I." theme
+          T="dotnet /tmp/pkgtool-theme/PkgTool.Core.dll"
+          S=build/theme/sce_sys/param.sfo
+          CID=IV0000-HENT00001_00-OSTLERTEKKERS000
+          $T sfo_new $S
+          $T sfo_setentry $S ATTRIBUTE   --type Integer --maxsize 4   --value 0
+          $T sfo_setentry $S CATEGORY    --type Utf8    --maxsize 4   --value ac
+          $T sfo_setentry $S CONTENT_ID  --type Utf8    --maxsize 48  --value $CID
+          $T sfo_setentry $S CONTENT_VER --type Utf8    --maxsize 8   --value 01.00
+          $T sfo_setentry $S FORMAT      --type Utf8    --maxsize 4   --value obs
+          $T sfo_setentry $S IRO_TAG     --type Integer --maxsize 4   --value 2
+          $T sfo_setentry $S PUBTOOLINFO --type Utf8    --maxsize 512 --value "c_date=$(date -u +%Y%m%d)"
+          $T sfo_setentry $S TITLE       --type Utf8    --maxsize 128 --value "OSTLERTEKKERS HEN Theme"
+          $T sfo_setentry $S TITLE_ID    --type Utf8    --maxsize 12  --value HENT00001
+          $T sfo_setentry $S VERSION     --type Utf8    --maxsize 8   --value 01.00
+          $T sfo_listentries $S
+          (cd build/theme && $T pkg_build theme.gp4 "$GITHUB_WORKSPACE")
+          ls -la "$CID.pkg"
+
       - name: Checksums
         run: |
           ls -la *.pkg eboot.bin
@@ -90,6 +120,7 @@ jobs:
             *.pkg
             SHA256SUMS.txt
             docs/INSTALLATION.md
+            docs/SYSTEM_THEME.md
 
       - name: Publish as pre-release (download from the Releases page)
         if: github.ref == 'refs/heads/main'
@@ -97,7 +128,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="build-${{ github.run_number }}"
-          gh release create "$TAG" *.pkg SHA256SUMS.txt docs/INSTALLATION.md \
+          gh release create "$TAG" *.pkg SHA256SUMS.txt docs/INSTALLATION.md docs/SYSTEM_THEME.md \
             --target "${{ github.sha }}" --prerelease \
-            --title "OSTLERTEKKERS HEN v0.5.1 – Build ${{ github.run_number }}" \
+            --title "OSTLERTEKKERS HEN v0.6.0 – Build ${{ github.run_number }}" \
             --notes "Automatisch gebaut aus ${{ github.sha }} mit OpenOrbis v0.5.4. Installation: INSTALLATION.md (USB-Stick, exFAT, PKG ins Hauptverzeichnis, GoldHEN -> Debug Settings -> Package Installer) oder in der App: Update Center -> Online-Update."

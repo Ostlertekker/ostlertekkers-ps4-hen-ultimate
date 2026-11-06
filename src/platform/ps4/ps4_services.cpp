@@ -15,6 +15,7 @@
 #include <orbis/Net.h>
 #include <orbis/Ssl.h>
 #include <orbis/Sysmodule.h>
+#include <orbis/SystemService.h>
 #include <orbis/UserService.h>
 #include <orbis/libkernel.h>
 
@@ -348,8 +349,60 @@ private:
 
 }  // namespace
 
+// ---------------------------------------------------------------- launcher
+// Same call sequence as the open-source Itemzflow game manager
+// (itemzflow/source/utils.cpp, Launch_App): load libSceSystemService.sprx,
+// take the foreground user, sceLncUtilLaunchApp with SkipSystemUpdate.
+// Declarations: OpenOrbis include/orbis/SystemService.h, UserService.h.
+// Error codes: Itemzflow include/defines.h.
+const char* lncErrorText(uint32_t e) {
+    switch (e) {
+        case 0x80940031: return "app not found in the app database";
+        case 0x8094000c: return "already running";
+        case 0x80940010: return "another app must be closed first";
+        case 0x80940011: return "another app must be suspended first";
+        case 0x80940008: return "eboot.bin missing";
+        case 0x80940009: return "param.sfo missing";
+        case 0x8094000a: return "no user logged in";
+        case 0x8094000d: return "not allowed in the current memory mode";
+        case 0x80940004: return "no app info";
+        case 0x8094001c: return "invalid title id";
+        case 0x80940005: return "invalid parameter";
+        default: return nullptr;
+    }
+}
+
+class Ps4Launcher : public ILauncher {
+public:
+    Status launch(const std::string& titleId) override {
+        if (!moduleLoaded_) {
+            const uint32_t m = sceKernelLoadStartModule("/system/common/lib/libSceSystemService.sprx", 0, nullptr, 0, nullptr, nullptr);
+            moduleLoaded_ = static_cast<int32_t>(m) > 0;
+        }
+        int32_t user = -1;
+        sceUserServiceGetForegroundUser(&user);
+        LncAppParam param;
+        std::memset(&param, 0, sizeof(param));
+        param.size = sizeof(LncAppParam);
+        param.user_id = static_cast<uint32_t>(user);
+        param.app_opt = 0;
+        param.crash_report = 0;
+        param.LaunchAppCheck_flag = LaunchApp_SkipSystemUpdate;
+        const uint32_t r = static_cast<uint32_t>(sceLncUtilLaunchApp(titleId.c_str(), nullptr, &param));
+        if ((r & 0x80000000u) == 0) return Status::ok();
+        char hex[16];
+        std::snprintf(hex, sizeof(hex), "0x%08X", r);
+        const char* txt = lncErrorText(r);
+        return Status::fail(ErrorCode::IoError, std::string(hex) + (txt ? std::string(" (") + txt + ")" : ""));
+    }
+
+private:
+    bool moduleLoaded_ = false;
+};
+
 std::unique_ptr<IAudio> createPs4Audio() { return std::unique_ptr<IAudio>(new Ps4Audio); }
 std::unique_ptr<IPrivilege> createPs4Privilege() { return std::unique_ptr<IPrivilege>(new Ps4Privilege); }
+std::unique_ptr<ILauncher> createPs4Launcher() { return std::unique_ptr<ILauncher>(new Ps4Launcher); }
 std::unique_ptr<INetwork> createPs4Network(std::string& err) {
     std::unique_ptr<Ps4Network> n(new Ps4Network);
     if (!n->init(err)) return nullptr;

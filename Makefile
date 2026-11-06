@@ -19,7 +19,7 @@
 TITLE       := OSTLERTEKKERS HEN
 TITLE_ID    := HENU00001
 CONTENT_ID  := IV0000-HENU00001_00-PS4HENULTIMATE00
-APP_VER     := 01.03
+APP_VER     := 01.04
 CATEGORY    := gd
 # GitHub Actions run number (the online updater compares it)
 HENU_BUILD  ?= 0
