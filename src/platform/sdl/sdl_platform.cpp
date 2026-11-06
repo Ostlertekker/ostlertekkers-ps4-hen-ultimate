@@ -6,7 +6,9 @@
 #define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 
+#include <algorithm>
 #include <cstdlib>
+#include <thread>
 #include <string>
 
 #include "gfx/soft_renderer.h"
@@ -153,6 +155,7 @@ Result<Platform> createPlatform() {
     Platform p;
     p.fs.reset(new PosixFileSystem);
     auto* r = new SoftwareRenderer(*p.fs, kW, kH);
+    r->setThreads(static_cast<int>(std::max(1u, std::thread::hardware_concurrency())));
     r->setPresenter([](const Canvas& c) { g_display.present(c); });
     p.renderer.reset(r);
     p.input.reset(new SdlInput);

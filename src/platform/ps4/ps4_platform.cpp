@@ -17,6 +17,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <algorithm>
+#include <thread>
 
 #include "gfx/soft_renderer.h"
 #include "platform/platform.h"
@@ -202,6 +204,11 @@ Result<Platform> createPlatform() {
     p.fs.reset(new PosixFileSystem);
     auto* renderer = new SoftwareRenderer(*p.fs, kWidth, kHeight);
     renderer->setPresenter([](const Canvas& c) { g_display.present(c); });
+    // Apps get 6 of the 8 Jaguar cores; rasterize on all of them.
+    {
+        unsigned hw = std::thread::hardware_concurrency();
+        renderer->setThreads(hw >= 2 && hw <= 8 ? static_cast<int>(std::min(hw, 6u)) : 6);
+    }
     p.renderer.reset(renderer);
     p.input.reset(new Ps4Input);
     p.system.reset(new Ps4SystemInfo);

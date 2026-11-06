@@ -26,11 +26,17 @@ Status GameLibrary::scan(IFileSystem& fs, const GamePaths& paths) {
     scanned_ = true;
     bool anyListed = false;
     Error firstError;
-    for (const auto& appDir : paths.appDirs) {
+    // App folders first; then the metadata folders, which list every
+    // installed title too (used when /user/app is not readable or empty).
+    std::vector<std::string> sources = paths.appDirs;
+    sources.insert(sources.end(), paths.metaDirs.begin(), paths.metaDirs.end());
+    for (size_t si = 0; si < sources.size(); ++si) {
+        const std::string& appDir = sources[si];
+        const bool fromMeta = si >= paths.appDirs.size();
         auto entries = fs.list(appDir);
         if (!entries) {
-            if (appDir == paths.appDirs.front()) {
-                firstError = entries.error();
+            if (si == 0 || (fromMeta && si == paths.appDirs.size())) {
+                if (si == 0) firstError = entries.error();
                 notes_.push_back(appDir + ": " + entries.error().message);
             }
             continue;   // e.g. no extended storage connected
@@ -39,9 +45,10 @@ Status GameLibrary::scan(IFileSystem& fs, const GamePaths& paths) {
         const bool external = appDir.compare(0, 9, "/mnt/ext0") == 0;
         for (const auto& e : entries.value()) {
             if (!e.isDir || !isValidTitleId(e.name) || find(e.name)) continue;
+            if (fromMeta && (e.name.compare(0, 4, "NPXS") == 0 || !fs.exists(appDir + "/" + e.name + "/param.sfo"))) continue;
             GameInfo g;
             g.titleId = e.name;
-            g.appPath = appDir + "/" + e.name;
+            g.appPath = fromMeta ? paths.appDirs.front() + "/" + e.name : appDir + "/" + e.name;
             g.external = external;
             for (const auto& metaDir : paths.metaDirs) {
                 const std::string meta = metaDir + "/" + e.name;

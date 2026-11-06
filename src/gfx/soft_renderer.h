@@ -4,9 +4,13 @@
 // backend into an SDL texture, the preview tool into a PNG.
 #pragma once
 
+#include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "gfx/canvas.h"
@@ -20,9 +24,15 @@ public:
     using Presenter = std::function<void(const Canvas&)>;
 
     SoftwareRenderer(IFileSystem& fs, int width = 1920, int height = 1080);
+    ~SoftwareRenderer() override;
 
     void setPresenter(Presenter p) { present_ = std::move(p); }
-    const Canvas& canvas() const { return canvas_; }
+    // Pending draw commands are executed first.
+    const Canvas& canvas() const;
+    // Number of threads that rasterize a frame (1 = only the calling thread).
+    // Every thread owns whole horizontal bands, so results are identical.
+    void setThreads(int n);
+    int threads() const { return static_cast<int>(workers_.size()) + 1; }
 
     void beginFrame(Color clear) override;
     void endFrame() override;
@@ -47,11 +57,35 @@ public:
     uint64_t frameCount() const { return frames_; }
 
 private:
+    struct Cmd {
+        enum Kind { Clear, Fill, Gradient, Stroke, Path, Text, Texture, CopyLayer } kind;
+        Rect r{};
+        Color a{}, b{};
+        float f = 0, f2 = 0;
+        uint32_t id = 0;
+        int y0 = 0, y1 = 0;   // rows touched
+        std::string text;
+        std::vector<std::vector<Pt>> path;
+    };
     void flushClear();
+    void push(Cmd c);
+    void flush() const;                 // runs the command list (const: canvas() is const)
+    void run(Canvas& band, const Cmd& c) const;
+    void workerLoop();
     IFileSystem& fs_;
     bool pendingClear_ = false;
     Color clearColor_;
-    Canvas canvas_;
+    mutable Canvas canvas_;
+    mutable std::vector<Cmd> cmds_;
+    // thread pool
+    std::vector<std::thread> workers_;
+    mutable std::mutex m_;
+    mutable std::condition_variable cv_, doneCv_;
+    mutable uint64_t job_ = 0;
+    mutable int busy_ = 0;
+    mutable std::atomic<int> nextBand_{0};
+    mutable int bands_ = 0;
+    bool stop_ = false;
     std::unique_ptr<Canvas> layer_;
     uint64_t layerKey_ = 0, recordingKey_ = 0;
     std::vector<BitmapFont> fonts_;

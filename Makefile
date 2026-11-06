@@ -19,7 +19,7 @@
 TITLE       := OSTLERTEKKERS HEN
 TITLE_ID    := HENU00001
 CONTENT_ID  := IV0000-HENU00001_00-PS4HENULTIMATE00
-APP_VER     := 01.02
+APP_VER     := 01.03
 CATEGORY    := gd
 # GitHub Actions run number (the online updater compares it)
 HENU_BUILD  ?= 0
@@ -40,6 +40,12 @@ else
 endif
 
 TOOLBIN := $(TOOLCHAIN)/bin/$(CDIR)
+
+# libjbc (sandbox escape used by the official GoldHEN Cheat Manager) is not
+# part of this repository: CI clones bucanero/ps4-libjbc at a fixed commit and
+# passes LIBJBC_DIR. Without it the app falls back to the GoldHEN SDK only.
+LIBJBC_DIR ?=
+OO_OBJCOPY ?= llvm-objcopy
 
 # ---------------------------------------------------------------- sources
 BUILD := build/ps4
@@ -62,6 +68,12 @@ OELF := $(BUILD)/henu.oelf
 CXXFLAGS_PS4 := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -std=gnu++17 \
                 -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include/c++/v1 -isystem $(TOOLCHAIN)/include \
                 -Isrc -I. -Wall -Wextra -O2 -DHENU_PS4=1 -DHENU_HAS_MAIN=1 -DHENU_BUILD=$(HENU_BUILD)
+
+ifneq ($(strip $(LIBJBC_DIR)),)
+  CXXFLAGS_PS4 += -DHENU_HAVE_LIBJBC=1 -I$(LIBJBC_DIR)
+  LIBJBC_OBJS := $(patsubst $(LIBJBC_DIR)/%.c,$(BUILD)/libjbc/%.o,$(wildcard $(LIBJBC_DIR)/*.c))
+  OBJS += $(LIBJBC_OBJS)
+endif
 
 LIBS := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNetCtl \
         -lSceAudioOut -lSceSysmodule -lSceNet -lSceSsl -lSceHttp
@@ -114,7 +126,15 @@ $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(OO_CXX) $(CXXFLAGS_PS4) -MMD -MP -c $< -o $@
 
--include $(OBJS:.o=.d)
+# libjbc: freestanding C. Its private open/close wrappers are renamed so they
+# can never replace the libc functions of the whole app.
+$(BUILD)/libjbc/%.o: $(LIBJBC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	$(subst clang++,clang,$(OO_CXX)) --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -O2 \
+	    -nostdlib -ffreestanding -mno-red-zone -I$(LIBJBC_DIR) -c $< -o $@
+	$(OO_OBJCOPY) --redefine-sym open=henu_jbc_open --redefine-sym close=henu_jbc_close $@
+
+-include $(filter-out $(LIBJBC_OBJS:.o=.d),$(OBJS:.o=.d))
 
 $(ELF): $(OBJS)
 	$(OO_LD) $(OBJS) -o $@ $(LDFLAGS)

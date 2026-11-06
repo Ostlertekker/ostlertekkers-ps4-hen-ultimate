@@ -221,7 +221,7 @@ void App::ensureScanned(bool force) {
         {
             ElevatedScope elevated(platform_.privilege.get());
             if (elevated.attempted())
-                gameScanNote_ = elevated.ok() ? "goldhen-sdk" : elevated.why();
+                gameScanNote_ = (elevated.ok() ? "ok: " : "failed: ") + elevated.why();
             st = games_.scan(sysFs());
         }
         for (const auto& n : games_.notes()) log_.warn("games: " + n);

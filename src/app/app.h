@@ -37,7 +37,7 @@ struct AppOptions {
     bool bootSequence = false;   // play the boot animation + sound after init (main sets it)
 };
 
-constexpr const char* kAppVersion = "0.5.0";
+constexpr const char* kAppVersion = "0.5.1";
 #ifndef HENU_BUILD
 #define HENU_BUILD 0
 #endif

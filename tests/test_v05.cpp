@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 
 #include "app/boot.h"
@@ -9,7 +10,9 @@
 #include "cheats/cheat_db.h"
 #include "cheats/cheat_edit.h"
 #include "check.h"
+#include "core/sfo.h"
 #include "core/sha256.h"
+#include "games/game_library.h"
 #include "gfx/soft_renderer.h"
 #include "net/online.h"
 #include "platform/mem_fs.h"
@@ -229,7 +232,77 @@ static void testBootAndLogo() {
     CHECK(std::string(kBrandName) == "OSTLERTEKKERS HEN");
 }
 
+static void testParallelRenderer() {
+    MemFileSystem fs;
+    SoftwareRenderer one(fs, 640, 360), many(fs, 640, 360);
+    many.setThreads(4);
+    CHECK(one.threads() == 1 && many.threads() == 4);
+    Fonts f;
+    for (const auto& s : bootStyles()) {
+        BootSequence b(s.id);
+        for (double t : {0.3, 2.0, 3.5, 3.6, 5.5}) {
+            one.beginFrame({0, 0, 0, 255});
+            many.beginFrame({0, 0, 0, 255});
+            b.draw(one, f, t);
+            b.draw(many, f, t);
+            one.endFrame();
+            many.endFrame();
+            CHECK(std::memcmp(one.canvas().data(), many.canvas().data(), 640u * 360u * 4u) == 0);
+        }
+    }
+    // shapes crossing band borders, strokes, gradients, layer cache
+    for (SoftwareRenderer* r : {&one, &many}) {
+        r->beginFrame({10, 20, 30, 255});
+        r->useCachedLayer(7);
+        r->gradientRect({13.5f, 7.25f, 600, 340}, {255, 0, 0, 200}, {0, 0, 255, 90}, 40);
+        r->endLayer();
+        r->strokeRect({100.5f, 50, 300, 200}, {255, 255, 255, 180}, 1.5f, 24);
+        r->fillPath({{{320, 10}, {630, 350}, {10, 350}}}, {0, 255, 0, 120});
+        r->endFrame();
+    }
+    CHECK(std::memcmp(one.canvas().data(), many.canvas().data(), 640u * 360u * 4u) == 0);
+    for (SoftwareRenderer* r : {&one, &many}) {
+        r->beginFrame({0, 0, 0, 255});
+        CHECK(r->useCachedLayer(7));
+        r->endFrame();
+    }
+    CHECK(std::memcmp(one.canvas().data(), many.canvas().data(), 640u * 360u * 4u) == 0);
+    many.setThreads(1);
+    CHECK(many.threads() == 1);
+}
+
+static void testGamesFromAppmetaOnly() {
+    MemFileSystem fs;
+    auto sfo = [](const std::string& title, const std::string& cid) {
+        Sfo d;
+        d.strings["TITLE"] = title;
+        d.strings["CONTENT_ID"] = cid;
+        d.strings["APP_VER"] = "01.03";
+        d.strings["CATEGORY"] = "gd";
+        return writeSfo(d);
+    };
+    fs.makeDir("/system_data/priv/appmeta");
+    fs.makeDir("/system_data/priv/appmeta/CUSA77701");
+    fs.writeFile("/system_data/priv/appmeta/CUSA77701/param.sfo", sfo("Meta Game", "EP0000-CUSA77701_00-METAGAME00000000"));
+    fs.makeDir("/system_data/priv/appmeta/NPXS20001");
+    fs.writeFile("/system_data/priv/appmeta/NPXS20001/param.sfo", sfo("System", "XX"));
+    fs.makeDir("/system_data/priv/appmeta/CUSA77702");   // no param.sfo -> skipped
+    GameLibrary lib;
+    GamePaths paths;
+    paths.loadIcons = false;
+    Status st = lib.scan(fs, paths);   // /user/app does not exist
+    CHECK(st.isOk());
+    CHECK(lib.all().size() == 1);
+    if (!lib.all().empty()) {
+        CHECK(lib.all()[0].titleId == "CUSA77701" && lib.all()[0].name == "Meta Game");
+        CHECK(lib.all()[0].region == Region::EU && lib.all()[0].version == "01.03");
+        CHECK(lib.all()[0].appPath == "/user/app/CUSA77701");
+    }
+}
+
 void runV05Tests() {
+    testGamesFromAppmetaOnly();
+    testParallelRenderer();
     testCheatEdit();
     testOnlineParsing();
     testAudio();

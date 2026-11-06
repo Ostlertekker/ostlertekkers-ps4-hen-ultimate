@@ -14,12 +14,19 @@ namespace henu {
 class Canvas {
 public:
     Canvas(int w, int h);
+    // Non-owning view of rows [y0, y1) of `parent`: every draw call only
+    // touches those rows. Views of disjoint bands can draw in parallel.
+    Canvas(Canvas& parent, int y0, int y1);
+    Canvas(const Canvas&) = delete;
+    Canvas& operator=(const Canvas&) = delete;
 
     int width() const { return w_; }
     int height() const { return h_; }
-    uint32_t* data() { return px_.data(); }
-    const uint32_t* data() const { return px_.data(); }
-    uint32_t pixel(int x, int y) const { return px_[static_cast<size_t>(y) * w_ + x]; }
+    int bandBegin() const { return cy0_; }
+    int bandEnd() const { return cy1_; }
+    uint32_t* data() { return p_; }
+    const uint32_t* data() const { return p_; }
+    uint32_t pixel(int x, int y) const { return p_[static_cast<size_t>(y) * w_ + x]; }
 
     void clear(Color c);
     void fillRoundRect(const Rect& r, Color c, float radius);
@@ -45,10 +52,14 @@ public:
 private:
     struct Shape { float x0, y0, x1, y1, r; };
     void paint(const Shape& outer, const Shape* inner, Color from, Color to, bool gradient, const Rect& gr);
-    void blend(uint32_t& dst, Color c, int a8);
+    static void blend(uint32_t& dst, Color c, int a8);
+    // Constant colour over n pixels (a8 = 0..255).
+    static void blendSpan(uint32_t* dst, int n, Color c, int a8);
 
     int w_, h_;
-    std::vector<uint32_t> px_;
+    int cy0_ = 0, cy1_ = 0;    // writable rows
+    std::vector<uint32_t> own_;
+    uint32_t* p_ = nullptr;
 };
 
 }  // namespace henu

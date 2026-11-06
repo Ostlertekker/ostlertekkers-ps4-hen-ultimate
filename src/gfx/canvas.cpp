@@ -41,31 +41,60 @@ inline uint8_t lerpFix(uint8_t a, uint8_t b, int32_t t, int32_t dither) {
 }
 }  // namespace
 
-Canvas::Canvas(int w, int h) : w_(w), h_(h), px_(static_cast<size_t>(w) * h, 0xFF000000u) {}
+Canvas::Canvas(int w, int h)
+    : w_(w), h_(h), cy0_(0), cy1_(h), own_(static_cast<size_t>(w) * h, 0xFF000000u), p_(own_.data()) {}
+
+Canvas::Canvas(Canvas& parent, int y0, int y1)
+    : w_(parent.w_), h_(parent.h_), cy0_(std::max(parent.cy0_, y0)), cy1_(std::min(parent.cy1_, y1)), p_(parent.p_) {
+    if (cy1_ < cy0_) cy1_ = cy0_;
+}
 
 void Canvas::clear(Color c) {
     c.a = 255;
-    std::fill(px_.begin(), px_.end(), pack(c));
+    std::fill(p_ + static_cast<size_t>(cy0_) * w_, p_ + static_cast<size_t>(cy1_) * w_, pack(c));
 }
 
 void Canvas::copyFrom(const Canvas& o) {
-    if (o.w_ == w_ && o.h_ == h_) std::memcpy(px_.data(), o.px_.data(), px_.size() * sizeof(uint32_t));
+    if (o.w_ != w_ || o.h_ != h_) return;
+    std::memcpy(p_ + static_cast<size_t>(cy0_) * w_, o.p_ + static_cast<size_t>(cy0_) * w_,
+                static_cast<size_t>(cy1_ - cy0_) * w_ * sizeof(uint32_t));
+}
+
+// x / 255 for two 8-bit channels packed in 0x00FF00FF lanes (exact for x <= 255 * 255).
+static inline uint32_t div255x2(uint32_t v) {
+    v += 0x00800080u;
+    return ((v + ((v >> 8) & 0x00FF00FFu)) >> 8) & 0x00FF00FFu;
 }
 
 void Canvas::blend(uint32_t& dst, Color c, int a8) {
     if (a8 <= 0) return;
-    if (a8 >= 255) { dst = pack({c.r, c.g, c.b, 255}); return; }
-    const int ia = 255 - a8;
-    const int dr = (dst >> 16) & 0xFF, dg = (dst >> 8) & 0xFF, db = dst & 0xFF;
-    const int r = (c.r * a8 + dr * ia + 127) / 255;
-    const int g = (c.g * a8 + dg * ia + 127) / 255;
-    const int b = (c.b * a8 + db * ia + 127) / 255;
-    dst = 0xFF000000u | (static_cast<uint32_t>(r) << 16) | (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
+    if (a8 >= 255) { dst = 0xFF000000u | (static_cast<uint32_t>(c.r) << 16) | (static_cast<uint32_t>(c.g) << 8) | c.b; return; }
+    const uint32_t a = static_cast<uint32_t>(a8), ia = 255 - a;
+    const uint32_t d = dst;
+    const uint32_t rb = div255x2(((d & 0x00FF00FFu) * ia) + ((static_cast<uint32_t>(c.r) << 16) | c.b) * a);
+    const uint32_t g = div255x2((((d >> 8) & 0xFFu) * ia) + static_cast<uint32_t>(c.g) * a);
+    dst = 0xFF000000u | rb | (g << 8);
+}
+
+void Canvas::blendSpan(uint32_t* dst, int n, Color c, int a8) {
+    if (n <= 0 || a8 <= 0) return;
+    if (a8 >= 255) {
+        std::fill(dst, dst + n, 0xFF000000u | (static_cast<uint32_t>(c.r) << 16) | (static_cast<uint32_t>(c.g) << 8) | c.b);
+        return;
+    }
+    const uint32_t a = static_cast<uint32_t>(a8), ia = 255 - a;
+    const uint32_t srb = ((static_cast<uint32_t>(c.r) << 16) | c.b) * a, sg = static_cast<uint32_t>(c.g) * a;
+    for (int i = 0; i < n; ++i) {
+        const uint32_t d = dst[i];
+        const uint32_t rb = div255x2((d & 0x00FF00FFu) * ia + srb);
+        const uint32_t g = div255x2(((d >> 8) & 0xFFu) * ia + sg);
+        dst[i] = 0xFF000000u | rb | (g << 8);
+    }
 }
 
 void Canvas::paint(const Shape& o, const Shape* in, Color from, Color to, bool gradient, const Rect& gr) {
-    const int yStart = std::max(0, static_cast<int>(std::floor(o.y0)));
-    const int yEnd = std::min(h_, static_cast<int>(std::ceil(o.y1)));
+    const int yStart = std::max(cy0_, static_cast<int>(std::floor(o.y0)));
+    const int yEnd = std::min(cy1_, static_cast<int>(std::ceil(o.y1)));
     const float gw = gr.w > 0 ? gr.w : 1, gh = gr.h > 0 ? gr.h : 1;
 
     for (int y = yStart; y < yEnd; ++y) {
@@ -96,7 +125,7 @@ void Canvas::paint(const Shape& o, const Shape* in, Color from, Color to, bool g
         const int holeA = allInner ? static_cast<int>(std::ceil(maxLi)) : 1 << 30;
         const int holeB = allInner ? static_cast<int>(std::floor(minRi)) : -(1 << 30);
 
-        uint32_t* row = &px_[static_cast<size_t>(y) * w_];
+        uint32_t* row = &p_[static_cast<size_t>(y) * w_];
         const float ty = ((y + 0.5f) - gr.y) / gh;
         // Gradient: t(x) = (x - gr.x + 0.5) / (2 gw) + ty / 2, linear in x -> 16.16 fixed point.
         int32_t tFix = 0, tStep = 0;
@@ -106,6 +135,12 @@ void Canvas::paint(const Shape& o, const Shape* in, Color from, Color to, bool g
         }
         for (int x = xs; x < xe; ++x, tFix += tStep) {
             if (in && x >= holeA && x < holeB) { tFix += tStep * (holeB - 1 - x); x = holeB - 1; continue; }
+            if (!gradient && !in && x == fullA && fullB > fullA) {
+                const int e = std::min(fullB, xe);
+                blendSpan(row + x, e - x, from, from.a);
+                x = e - 1;
+                continue;
+            }
             float cov;
             if (!in && x >= fullA && x < fullB) {
                 cov = 1.f;
@@ -154,9 +189,9 @@ void Canvas::strokeRoundRect(const Rect& r, Color c, float width, float radius) 
 void Canvas::blitMask(const uint8_t* mask, int stride, int sx, int sy, int w, int h, int dx, int dy, Color c) {
     for (int j = 0; j < h; ++j) {
         const int y = dy + j;
-        if (y < 0 || y >= h_) continue;
+        if (y < cy0_ || y >= cy1_) continue;
         const uint8_t* m = mask + static_cast<size_t>(sy + j) * stride + sx;
-        uint32_t* row = &px_[static_cast<size_t>(y) * w_];
+        uint32_t* row = &p_[static_cast<size_t>(y) * w_];
         for (int i = 0; i < w; ++i) {
             const int x = dx + i;
             if (x < 0 || x >= w_ || m[i] == 0) continue;
@@ -167,28 +202,43 @@ void Canvas::blitMask(const uint8_t* mask, int stride, int sx, int sy, int w, in
 
 void Canvas::fillPath(const std::vector<std::vector<IRenderer::Pt>>& contours, Color c) {
     if (c.a == 0) return;
+    // Edge list (top-down), sorted by top y; scanned with an active edge list.
+    struct Edge { float y0, y1, x0, dxdy; };
+    std::vector<Edge> edges;
     float minY = 1e9f, maxY = -1e9f;
-    for (const auto& ct : contours)
-        for (const auto& p : ct) { minY = std::min(minY, p.y); maxY = std::max(maxY, p.y); }
-    const int yStart = std::max(0, static_cast<int>(std::floor(minY)));
-    const int yEnd = std::min(h_, static_cast<int>(std::ceil(maxY)));
-    if (yEnd <= yStart) return;
+    for (const auto& ct : contours) {
+        const size_t n = ct.size();
+        for (size_t i = 0; i < n; ++i) {
+            IRenderer::Pt a = ct[i], b = ct[(i + 1) % n];
+            if (a.y == b.y) continue;
+            if (a.y > b.y) std::swap(a, b);
+            edges.push_back({a.y, b.y, a.x, (b.x - a.x) / (b.y - a.y)});
+            minY = std::min(minY, a.y);
+            maxY = std::max(maxY, b.y);
+        }
+    }
+    const int yStart = std::max(cy0_, static_cast<int>(std::floor(minY)));
+    const int yEnd = std::min(cy1_, static_cast<int>(std::ceil(maxY)));
+    if (yEnd <= yStart || edges.empty()) return;
+    std::sort(edges.begin(), edges.end(), [](const Edge& l, const Edge& r) { return l.y0 < r.y0; });
+    std::vector<const Edge*> active;
+    size_t nextEdge = 0;
     std::vector<float> xs;
     std::vector<float> cov(static_cast<size_t>(w_) + 2, 0.f);
     for (int y = yStart; y < yEnd; ++y) {
         int lo = w_, hi = -1;
         for (int s = 0; s < kSub; ++s) {
             const float yc = y + (s + 0.5f) / kSub;
+            while (nextEdge < edges.size() && edges[nextEdge].y0 <= yc) active.push_back(&edges[nextEdge++]);
             xs.clear();
-            for (const auto& ct : contours) {
-                const size_t n = ct.size();
-                for (size_t i = 0; i < n; ++i) {
-                    const IRenderer::Pt& a = ct[i];
-                    const IRenderer::Pt& b = ct[(i + 1) % n];
-                    if ((a.y <= yc && b.y > yc) || (b.y <= yc && a.y > yc))
-                        xs.push_back(a.x + (yc - a.y) * (b.x - a.x) / (b.y - a.y));
-                }
+            size_t keep = 0;
+            for (size_t i = 0; i < active.size(); ++i) {
+                const Edge* e = active[i];
+                if (e->y1 <= yc) continue;          // finished: drop
+                active[keep++] = e;
+                xs.push_back(e->x0 + (yc - e->y0) * e->dxdy);
             }
+            active.resize(keep);
             std::sort(xs.begin(), xs.end());
             for (size_t i = 0; i + 1 < xs.size(); i += 2) {
                 const float x0 = std::max(0.f, xs[i]), x1 = std::min(static_cast<float>(w_), xs[i + 1]);
@@ -203,7 +253,7 @@ void Canvas::fillPath(const std::vector<std::vector<IRenderer::Pt>>& contours, C
             }
         }
         if (hi < lo) continue;
-        uint32_t* row = &px_[static_cast<size_t>(y) * w_];
+        uint32_t* row = &p_[static_cast<size_t>(y) * w_];
         for (int x = lo; x <= hi; ++x) {
             float v = cov[static_cast<size_t>(x)] / kSub;
             cov[static_cast<size_t>(x)] = 0;
@@ -217,9 +267,9 @@ void Canvas::fillPath(const std::vector<std::vector<IRenderer::Pt>>& contours, C
 void Canvas::drawImage(const uint32_t* px, int iw, int ih, const Rect& dst, float alpha, float radius) {
     if (!px || iw <= 0 || ih <= 0 || dst.w <= 0 || dst.h <= 0 || alpha <= 0) return;
     const int x0 = std::max(0, static_cast<int>(std::floor(dst.x)));
-    const int y0 = std::max(0, static_cast<int>(std::floor(dst.y)));
+    const int y0 = std::max(cy0_, static_cast<int>(std::floor(dst.y)));
     const int x1 = std::min(w_, static_cast<int>(std::ceil(dst.x + dst.w)));
-    const int y1 = std::min(h_, static_cast<int>(std::ceil(dst.y + dst.h)));
+    const int y1 = std::min(cy1_, static_cast<int>(std::ceil(dst.y + dst.h)));
     const float rad = std::max(0.f, std::min(radius, std::min(dst.w, dst.h) / 2));
     const float sx = iw / dst.w, sy = ih / dst.h;
     const int a255 = static_cast<int>(std::min(1.f, alpha) * 255 + 0.5f);
@@ -231,7 +281,7 @@ void Canvas::drawImage(const uint32_t* px, int iw, int ih, const Rect& dst, floa
         const int iy = std::max(0, std::min(ih - 1, static_cast<int>(std::floor(fy))));
         const int iy2 = std::min(ih - 1, iy + 1);
         const int wy = static_cast<int>((fy - std::floor(fy)) * 256) & 255;
-        uint32_t* row = &px_[static_cast<size_t>(y) * w_];
+        uint32_t* row = &p_[static_cast<size_t>(y) * w_];
         for (int x = x0; x < x1; ++x) {
             const float xc = x + 0.5f;
             if (xc < l || xc > r) continue;

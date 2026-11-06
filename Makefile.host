@@ -32,7 +32,7 @@ test: $(BUILD)/run_tests
 	./$(BUILD)/run_tests
 
 $(BUILD)/run_tests: $(OBJS) $(TEST_OBJS_EXTRA)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ -pthread
 
 # UI preview: runs the real App with the PS4 software renderer, writes PNGs.
 preview: $(BUILD)/preview
@@ -40,13 +40,13 @@ preview: $(BUILD)/preview
 	./$(BUILD)/preview . build/preview-root build/preview
 
 $(BUILD)/preview: $(PREVIEW_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ -pthread
 
 app: $(BUILD)/henu-desktop
 	@echo "Start: ./$(BUILD)/henu-desktop  (Tastatur: Pfeile, Enter=X, Esc=O, Q=L1, E=R1)"
 
 $(BUILD)/henu-desktop: $(APP_OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(SDL_LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(SDL_LIBS) -pthread
 
 $(BUILD)/desktop/sdl_platform.o: src/platform/sdl/sdl_platform.cpp
 	@pkg-config --exists sdl2 || { echo "FEHLER: SDL2 + pkg-config nötig (brew install sdl2 pkg-config)"; exit 1; }

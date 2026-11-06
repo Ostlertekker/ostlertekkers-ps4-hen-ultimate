@@ -18,6 +18,8 @@
 #include <orbis/UserService.h>
 #include <orbis/libkernel.h>
 
+#include <dirent.h>
+
 #include <atomic>
 #include <cctype>
 #include <cstdio>
@@ -27,6 +29,10 @@
 
 #include "platform/platform.h"
 #include "platform/ps4/ps4_services.h"
+
+#ifdef HENU_HAVE_LIBJBC
+#include <libjbc.h>
+#endif
 
 // ---------------------------------------------------------------- syscall
 // Indirect syscall (FreeBSD syscall 0), as in GoldHEN_Plugins_SDK Syscall.c.
@@ -62,35 +68,107 @@ struct JailbreakBackup {   // struct jailbreak_backup (GoldHEN.h)
 constexpr long kGoldhenSyscall = 500;
 constexpr long kCmdVersion = 0, kCmdJailbreak = 2, kCmdUnjailbreak = 3;
 
+// Probe: can this process list /user/app? (read-only, no side effects)
+// True only if /user/app lists at least one title folder: inside the app
+// sandbox the folder can exist but be empty.
+bool canSeeUserApp() {
+    for (const char* dir : {"/user/app", "/system_data/priv/appmeta"}) {
+        DIR* d = opendir(dir);
+        if (!d) continue;
+        bool found = false;
+        while (struct dirent* e = readdir(d)) {
+            const char* n = e->d_name;
+            if (std::strlen(n) == 9 && std::isalpha(static_cast<unsigned char>(n[0])) &&
+                std::isdigit(static_cast<unsigned char>(n[4])) && std::isdigit(static_cast<unsigned char>(n[8]))) {
+                found = true;
+                break;
+            }
+        }
+        closedir(d);
+        if (found) return true;
+    }
+    return false;
+}
+
+// Three ways out of the app sandbox, tried in order (docs/API_NACHWEIS.md G8):
+//   1. none needed (already outside, e.g. GoldHEN setting)
+//   2. GoldHEN SDK syscall 500 jailbreak / unjailbreak
+//   3. libjbc (same method as the official GoldHEN Cheat Manager)
+// Every attempt is reported in `why`, so the games screen can show it.
 class Ps4Privilege : public IPrivilege {
 public:
     bool elevate(std::string& why) override {
         std::lock_guard<std::mutex> lock(m_);
-        if (depth_++ > 0) return true;
-        std::memset(&backup_, 0, sizeof(backup_));
+        if (depth_ > 0) { ++depth_; return true; }
+        why.clear();
+        if (canSeeUserApp()) {
+            method_ = Method::None;
+            ++depth_;
+            why = "direct";
+            return true;
+        }
+        why += "direct: no; ";
+        // 2. GoldHEN SDK
         long v = henu_syscall(kGoldhenSyscall, kCmdVersion, nullptr);
-        if (v <= 0) {
-            --depth_;
-            why = "GoldHEN SDK not answering (syscall 500)";
-            return false;
+        if (v > 0) {
+            std::memset(&backup_, 0, sizeof(backup_));
+            long r = henu_syscall(kGoldhenSyscall, kCmdJailbreak, &backup_);
+            if (r == 0 && canSeeUserApp()) {
+                method_ = Method::GoldhenSdk;
+                ++depth_;
+                why += "goldhen-sdk v" + std::to_string(v);
+                return true;
+            }
+            if (r == 0) henu_syscall(kGoldhenSyscall, kCmdUnjailbreak, &backup_);
+            why += "goldhen-sdk v" + std::to_string(v) + ": jailbreak=" + std::to_string(r) + ", /user/app still closed; ";
+        } else {
+            why += "goldhen-sdk: no answer; ";
         }
-        if (henu_syscall(kGoldhenSyscall, kCmdJailbreak, &backup_) != 0) {
-            --depth_;
-            why = "GoldHEN jailbreak command failed";
-            return false;
+#ifdef HENU_HAVE_LIBJBC
+        // 3. libjbc
+        if (jbc_get_cred(&saved_) == 0) {
+            jbc_cred root = saved_;
+            if (jbc_jailbreak_cred(&root) == 0 && jbc_set_cred(&root) == 0) {
+                if (canSeeUserApp()) {
+                    method_ = Method::Libjbc;
+                    ++depth_;
+                    why += "libjbc";
+                    return true;
+                }
+                jbc_set_cred(&saved_);
+                why += "libjbc: creds set, /user/app still closed";
+            } else {
+                jbc_set_cred(&saved_);
+                why += "libjbc: jailbreak failed";
+            }
+        } else {
+            why += "libjbc: cannot read creds";
         }
-        return true;
+#else
+        why += "libjbc: not built in";
+#endif
+        return false;
     }
     void restore() override {
         std::lock_guard<std::mutex> lock(m_);
         if (depth_ <= 0) return;
-        if (--depth_ == 0) henu_syscall(kGoldhenSyscall, kCmdUnjailbreak, &backup_);
+        if (--depth_ > 0) return;
+        if (method_ == Method::GoldhenSdk) henu_syscall(kGoldhenSyscall, kCmdUnjailbreak, &backup_);
+#ifdef HENU_HAVE_LIBJBC
+        if (method_ == Method::Libjbc) jbc_set_cred(&saved_);
+#endif
+        method_ = Method::None;
     }
 
 private:
+    enum class Method { None, GoldhenSdk, Libjbc };
     std::mutex m_;
     int depth_ = 0;
+    Method method_ = Method::None;
     JailbreakBackup backup_;
+#ifdef HENU_HAVE_LIBJBC
+    jbc_cred saved_;
+#endif
 };
 
 // ---------------------------------------------------------------- audio

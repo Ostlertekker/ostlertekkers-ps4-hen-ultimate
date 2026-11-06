@@ -178,7 +178,7 @@ void GamesScreen::draw(const UiContext& ctx) {
         if (!total) {
             const std::string& note = app_.gameScanNote();
             if (!app_.games().notes().empty()) why = app_.t("games.scanError") + " " + app_.games().notes().front();
-            if (!note.empty() && note != "goldhen-sdk") why += (why.empty() ? "" : "\n") + app_.t("games.noSandboxEscape") + " " + note;
+            if (!note.empty()) why += (why.empty() ? "" : "\n") + app_.t("games.noSandboxEscape") + " " + note;
             if (why.empty()) why = app_.t("games.noneHelp");
         }
         for (const auto& line : wrapText(r, f.body, why, box.w - 60)) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.1 – Spiele-Erkennung, flüssiges Intro (2026-11-06), PKG-Version 01.03
+
+### Behoben
+- **Spiele wurden nicht angezeigt**: Der Zugriffstest akzeptierte einen leeren `/user/app`-Ordner der App-Sandbox als „sichtbar“ und versuchte die GoldHEN-Freischaltung gar nicht erst. Jetzt zählt nur ein Ordner mit echten Title-IDs. Zusätzlich dient `/system_data/priv/appmeta` als zweite Quelle, und Ordner werden auch erkannt, wenn `stat` verweigert wird
+- **Intro ruckelte**: Der Renderer ist rund 3-mal schneller (Pixelmischung ohne Divisionen, direkte Füllung voller Flächen, Polygone mit aktiver Kantenliste) und rendert jetzt auf bis zu 6 CPU-Kernen in Streifen; das Bild ist pixelgleich mit dem Einkern-Ergebnis (Test)
+
 ## v0.5.0 – OSTLERTEKKERS HEN (2026-11-06), PKG-Version 01.02
 
 ### Hinzugefügt

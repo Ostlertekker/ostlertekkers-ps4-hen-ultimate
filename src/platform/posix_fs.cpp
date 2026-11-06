@@ -47,6 +47,10 @@ Result<std::vector<DirEntry>> PosixFileSystem::list(const std::string& dir) {
             de.isDir = S_ISDIR(st.st_mode);
             de.size = static_cast<uint64_t>(st.st_size);
             de.mtime = static_cast<int64_t>(st.st_mtime);
+        } else {
+#ifdef DT_DIR
+            de.isDir = e->d_type == DT_DIR;   // stat may be refused while listing works
+#endif
         }
         out.push_back(de);
         if (out.size() >= 100000) break;  // sanity cap

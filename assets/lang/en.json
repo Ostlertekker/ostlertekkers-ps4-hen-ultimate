@@ -337,7 +337,7 @@
   "games.open": "Details",
   "games.cheatFile1": "CHEAT",
   "games.scanError": "Read error:",
-  "games.noSandboxEscape": "No access to installed titles (GoldHEN SDK not answering):",
+  "games.noSandboxEscape": "Access check (please send a photo to the developer):",
   "games.noneHelp": "No installed titles found. GoldHEN must be loaded so the app may read /user/app.",
   "games.storage": "Storage",
   "games.storage.ext": "Extended storage",

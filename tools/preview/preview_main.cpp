@@ -143,6 +143,7 @@ int main(int argc, char** argv) {
     Platform p;
     p.fs.reset(new PosixFileSystem);
     auto* rec = new SoftwareRenderer(*p.fs);
+    rec->setThreads(4);   // same image as 1 thread, exercises the band renderer
     p.renderer.reset(rec);
     p.input.reset(new NoInput);
     p.system.reset(new DemoSystem);
