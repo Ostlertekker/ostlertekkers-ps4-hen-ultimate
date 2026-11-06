@@ -60,7 +60,7 @@ OELF := $(BUILD)/henu.oelf
 COMMON := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables \
           -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include \
           -Isrc -I. -Wall -Wextra -O2 -DHENU_PS4=1 -DHENU_HAS_MAIN=1
-CXXFLAGS_PS4 := $(COMMON) -std=c++17 -isystem $(TOOLCHAIN)/include/c++/v1
+CXXFLAGS_PS4 := $(COMMON) -std=gnu++17 -isystem $(TOOLCHAIN)/include/c++/v1
 
 LIBS := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService
 
