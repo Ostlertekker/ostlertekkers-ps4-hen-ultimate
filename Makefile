@@ -68,8 +68,10 @@ LDFLAGS := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr \
            -L$(TOOLCHAIN)/lib $(LIBS) $(TOOLCHAIN)/lib/crt1.o
 
 # Stub system modules shipped with the toolchain; they belong in sce_module/
-# of every homebrew package (OpenOrbis v0.5 changelog).
-SCE_MODULES := sce_module/libc.prx sce_module/libSceFios2.prx
+# of every homebrew package (OpenOrbis v0.5 changelog). Their location changed
+# between releases (bin/data/modules, samples/*/sce_module), so search for them.
+PRX_DIR := $(patsubst %/,%,$(dir $(firstword $(shell find "$(TOOLCHAIN)" -name libc.prx 2>/dev/null))))
+SCE_MODULES := $(if $(PRX_DIR),$(foreach m,libc libSceFios2,$(if $(wildcard $(PRX_DIR)/$(m).prx),sce_module/$(m).prx)))
 
 # Files packed into the PKG (relative to project root, = /app0 on the console)
 PKG_FILES := eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png $(SCE_MODULES) \
@@ -94,14 +96,14 @@ check:
 	@test -e "$(TOOLBIN)/PkgTool.Core" || { echo "FEHLER: $(TOOLBIN)/PkgTool.Core fehlt."; exit 1; }
 	@command -v $(OO_CXX) >/dev/null 2>&1 || { echo "FEHLER: Compiler $(OO_CXX) nicht gefunden."; exit 1; }
 	@command -v $(OO_LD) >/dev/null 2>&1 || { echo "FEHLER: Linker $(OO_LD) nicht gefunden."; exit 1; }
-	@test -f "$(TOOLCHAIN)/bin/data/modules/libc.prx" || { echo "FEHLER: $(TOOLCHAIN)/bin/data/modules/libc.prx fehlt."; exit 1; }
+	@if [ -n "$(PRX_DIR)" ]; then echo "sce_module aus: $(PRX_DIR) -> $(SCE_MODULES)"; else echo "WARNUNG: keine libc.prx in der Toolchain gefunden - PKG ohne sce_module."; fi
 	@test -f sce_sys/icon0.png || { echo "FEHLER: sce_sys/icon0.png fehlt (python3 scripts/make_icons.py)."; exit 1; }
 	@test -n "$(wildcard assets/fonts/*.hfnt)" || { echo "FEHLER: Schrift-Atlanten fehlen (python3 scripts/make_fonts.py)."; exit 1; }
 	@echo "Build-Umgebung OK: $(TOOLCHAIN)"
 
 sce_module/%.prx:
 	@mkdir -p sce_module
-	cp "$(TOOLCHAIN)/bin/data/modules/$*.prx" $@
+	cp "$(PRX_DIR)/$*.prx" $@
 
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)

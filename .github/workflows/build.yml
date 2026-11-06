@@ -58,7 +58,8 @@ jobs:
           chmod +x "$TC"/bin/linux/* || true
           echo "OO_PS4_TOOLCHAIN=$TC" >> "$GITHUB_ENV"
           echo "Toolchain: $TC"
-          ls "$TC" "$TC/bin/linux" "$TC/bin/data/modules" || true
+          ls "$TC" "$TC/bin/linux" || true
+          echo "--- .prx files in toolchain:"; find "$TC" -name '*.prx' | head -20
 
       - name: Check build environment
         run: make check OO_CXX=clang++-18 OO_LD=ld.lld-18
