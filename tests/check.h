@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - tiny test helpers shared by all test files.
+// OSTLERTEKKERS HEN - tiny test helpers shared by all test files.
 #pragma once
 #include <cstdio>
 

@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - host unit tests (no external framework).
+// OSTLERTEKKERS HEN - host unit tests (no external framework).
 // Build & run:  make -f Makefile.host test
 #include <cstdio>
 #include <string>
@@ -58,10 +58,10 @@ static void testCapabilities() {
 }
 
 static void testPathGuard() {
-    PathGuard g("/data/PS4HENULTIMATE");
+    PathGuard g("/data/OSTLERTEKKERS_HEN");
 
-    auto n = PathGuard::normalize("/data//PS4HENULTIMATE/./themes/../settings.json/");
-    CHECK(n.isOk() && n.value() == "/data/PS4HENULTIMATE/settings.json");
+    auto n = PathGuard::normalize("/data//OSTLERTEKKERS_HEN/./themes/../settings.json/");
+    CHECK(n.isOk() && n.value() == "/data/OSTLERTEKKERS_HEN/settings.json");
     CHECK(PathGuard::normalize("/user/data/GoldHEN").value() == "/data/GoldHEN");
     CHECK(!PathGuard::normalize("relative/path").isOk());
     CHECK(!PathGuard::normalize("").isOk());
@@ -69,7 +69,7 @@ static void testPathGuard() {
     CHECK(PathGuard::normalize("/").value() == "/");
 
     // allowed
-    CHECK(g.canWrite("/data/PS4HENULTIMATE/settings.json"));
+    CHECK(g.canWrite("/data/OSTLERTEKKERS_HEN/settings.json"));
     CHECK(g.canWrite("/mnt/usb0/backup/a.zip"));
     CHECK(g.canWrite("/user/data/GoldHEN/cheats/json/CUSA01234_01.00.json"));
     CHECK(g.canWrite("/data/GoldHEN/cheats/mc4/CUSA01234_01.00.mc4"));
@@ -81,9 +81,9 @@ static void testPathGuard() {
     CHECK(!g.canWrite("/data/GoldHEN/cheats/other/x.json"));
     // denied: traversal out of allowed root
     CHECK(!g.canWrite("/data/GoldHEN/cheats/json/../../payloads/goldhen.bin"));
-    CHECK(!g.canWrite("/data/PS4HENULTIMATE/../GoldHEN/config.ini"));
+    CHECK(!g.canWrite("/data/OSTLERTEKKERS_HEN/../GoldHEN/config.ini"));
     // denied: prefix trick
-    CHECK(!g.canWrite("/data/PS4HENULTIMATEevil/x"));
+    CHECK(!g.canWrite("/data/OSTLERTEKKERS_HENevil/x"));
     CHECK(!g.canWrite("/mnt/usb00/x"));
     // denied: system
     CHECK(!g.canWrite("/system/common/lib/x.sprx"));
@@ -91,7 +91,7 @@ static void testPathGuard() {
     CHECK(!g.canWrite("/update/PS4UPDATE.PUP"));
     CHECK(!g.canWrite("/data/somethingelse"));
     // denied: root folders themselves
-    CHECK(!g.canWrite("/data/PS4HENULTIMATE"));
+    CHECK(!g.canWrite("/data/OSTLERTEKKERS_HEN"));
     CHECK(!g.canWrite("/mnt/usb0"));
     CHECK(!g.canWrite("/data/GoldHEN/cheats/json"));
     // reads are allowed

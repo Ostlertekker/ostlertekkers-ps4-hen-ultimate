@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.5.0 – OSTLERTEKKERS HEN (2026-11-06), PKG-Version 01.02
+
+### Hinzugefügt
+- Neuer Name **OSTLERTEKKERS HEN**, Pentagramm-Logo (Vektor, in App und PKG-Grafik)
+- **Start-Intros**: 6 eigene Animationen (Inferno, Polygone, Nebel, Wellen, Lichtspuren, Glanz), wählbar oder zufällig, mit Taste überspringbar. Keine Logos, Namen, Klänge oder Bildmotive von Konsolenherstellern
+- **Startsound**: eigener, im Programm erzeugter Klang je Intro; alternativ eigene `boot.wav` (über Einstellungen von USB übernehmen); Lautstärke einstellbar
+- **Online-Updater**: prüft GitHub Releases, lädt das PKG, prüft SHA-256, legt es in `/data/pkg` ab (Installation über den Package Installer)
+- **Cheats online**: GoldHEN Cheat Repository durchsuchen und Dateien für installierte Spiele laden (Kennzeichnung „passt“ / „andere Version“ / „vorhanden“)
+- **Spielseite** in „Meine Spiele“: Infos, Cheats des Spiels, online laden, USB-Import, Export (Infodatei + Cheat-Dateien), Favorit
+- **Cheats bearbeiten** (JSON und SHN): einzelne Cheats entfernen oder umbenennen, Original wiederherstellen, Datei löschen – vor der ersten Änderung wird das Original gesichert
+- Einmalige Abfrage, bevor die App ins Internet geht
+- Installierte Spiele werden über das GoldHEN-SDK gelesen (die App-Sandbox sperrt `/user/app` sonst)
+
+### Geändert
+- Datenordner jetzt `/data/OSTLERTEKKERS_HEN` (alter Ordner `/data/PS4HENULTIMATE` wird beim ersten Start übernommen)
+- Startseite zeigt echte Firmware und GoldHEN-Status
+- Nach dem Ende eines Downloads oder einer Animation wird sofort neu gezeichnet (vorher erst nach dem nächsten Tastendruck)
+
 ## v0.4.0 – alle Bereiche (2026-11-06), PKG-Version 01.01
 
 ### Hinzugefügt

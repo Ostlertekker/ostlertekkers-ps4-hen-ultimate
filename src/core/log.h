@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/log.h
+// OSTLERTEKKERS HEN - core/log.h
 // Simple logger: memory ring (for the diagnostics screen) + optional file
 // sink with size-based rotation (app.log -> app.log.1 ... .4).
 #pragma once

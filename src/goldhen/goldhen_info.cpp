@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - goldhen/goldhen_info.cpp
+// OSTLERTEKKERS HEN - goldhen/goldhen_info.cpp
 #include "goldhen/goldhen_info.h"
 
 #include "files/fs_util.h"

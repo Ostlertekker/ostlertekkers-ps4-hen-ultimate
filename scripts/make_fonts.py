@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PS4 HEN ULTIMATE - pre-renders bitmap font atlases (.hfnt) from Inter.
+"""OSTLERTEKKERS HEN - pre-renders bitmap font atlases (.hfnt) from Inter.
 
 Run from project root:  python3 scripts/make_fonts.py
 Needs Pillow. Output: assets/fonts/<name>.hfnt (read by src/gfx/font.cpp).

@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - themes/theme_catalog.cpp
+// OSTLERTEKKERS HEN - themes/theme_catalog.cpp
 #include "themes/theme_catalog.h"
 
 #include <algorithm>

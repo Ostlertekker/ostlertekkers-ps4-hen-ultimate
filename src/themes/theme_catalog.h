@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - themes/theme_catalog.h
+// OSTLERTEKKERS HEN - themes/theme_catalog.h
 // Loads bundled themes (read-only, inside the PKG) and user themes (app data).
 // Broken files are skipped and reported; at least the fallback theme exists.
 #pragma once
@@ -15,7 +15,7 @@ class ThemeCatalog {
 public:
     struct LoadError { std::string file, message; };
 
-    // bundleDir e.g. "/app0/assets/themes", userDir e.g. "/data/PS4HENULTIMATE/themes"
+    // bundleDir e.g. "/app0/assets/themes", userDir e.g. "/data/OSTLERTEKKERS_HEN/themes"
     void scan(IFileSystem& fs, const std::string& bundleDir, const std::string& userDir);
 
     const std::vector<Theme>& themes() const { return themes_; }

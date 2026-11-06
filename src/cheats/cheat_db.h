@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - cheats/cheat_db.h
+// OSTLERTEKKERS HEN - cheats/cheat_db.h
 // Scans the GoldHEN cheat folders and reads cheat names from the files.
 // Formats (verified against github.com/GoldHEN/GoldHEN_Cheat_Repository):
 //   json: {"name","id","version","process","mods":[{"name","type",...}],"credits"}
@@ -20,6 +20,8 @@ struct GameInfo;
 
 // Parses content of one cheat file (file name gives title/version/format).
 Result<CheatFile> parseCheatFile(const std::string& fileName, const std::string& bytes);
+// SHN text with UTF-16 LE/BE BOM -> UTF-8; anything else unchanged.
+std::string toUtf8(const std::string& bytes);
 
 class CheatDatabase {
 public:

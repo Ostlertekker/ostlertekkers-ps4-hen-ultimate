@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/capability.h
+// OSTLERTEKKERS HEN - core/capability.h
 // Central registry: every feature reports what it can actually do on this
 // system. The UI reads only this registry to decide what to show/lock.
 #pragma once

@@ -1,4 +1,4 @@
-# PS4 HEN ULTIMATE – Phase A: Projektprüfung
+# OSTLERTEKKERS HEN – Phase A: Projektprüfung
 
 Stand: 2026-11-06 · Grundlage: `PS4_HEN_ULTIMATE_v1_starter.zip` (7 Dateien, ca. 18 KB)
 

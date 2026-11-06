@@ -23,13 +23,13 @@
       "id": "games",
       "order": 2,
       "status": "unverified",
-      "note": "read-only; source paths need verification"
+      "note": "read-only via GoldHEN SDK; detail page per game"
     },
     {
       "id": "cheats",
       "order": 3,
       "status": "limited",
-      "note": "file management; in-game toggle via GoldHEN menu; no download yet"
+      "note": "view, edit, import/export, online download; in-game toggle via GoldHEN menu"
     },
     {
       "id": "themes",
@@ -56,8 +56,8 @@
     {
       "id": "network",
       "order": 8,
-      "status": "limited",
-      "note": "status only; no downloads yet"
+      "status": "unverified",
+      "note": "HTTPS for cheat downloads and updater; not tested on console yet"
     },
     {
       "id": "homebrew",
@@ -79,7 +79,7 @@
       "id": "update",
       "order": 12,
       "status": "limited",
-      "note": "manual update via GitHub Releases"
+      "note": "online check + download to /data/pkg; install via Package Installer"
     },
     {
       "id": "diag",

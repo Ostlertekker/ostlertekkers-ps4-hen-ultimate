@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - ui/focus.cpp
+// OSTLERTEKKERS HEN - ui/focus.cpp
 #include "ui/focus.h"
 
 #include <cmath>

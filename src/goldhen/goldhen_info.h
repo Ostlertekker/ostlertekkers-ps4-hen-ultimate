@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - goldhen/goldhen_info.h
+// OSTLERTEKKERS HEN - goldhen/goldhen_info.h
 // READ-ONLY view of GoldHEN's data folder. This module never writes,
 // patches, updates or replaces anything belonging to GoldHEN.
 // Known layout (GoldHEN docs / GoldHEN_Cheat_Manager include/cheats.h):

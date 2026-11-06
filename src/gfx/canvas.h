@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - gfx/canvas.h
+// OSTLERTEKKERS HEN - gfx/canvas.h
 // CPU rasterizer on a 32-bit A8R8G8B8 pixel buffer (same layout the PS4
 // VideoOut framebuffer uses). Anti-aliased rounded rectangles via 4 vertical
 // sub-samples with exact horizontal coverage per sub-row.
@@ -28,6 +28,10 @@ public:
     // 8-bit coverage mask (e.g. glyph) tinted with c, top-left at (dx, dy).
     void blitMask(const uint8_t* mask, int stride, int sx, int sy, int w, int h, int dx, int dy, Color c);
     void copyFrom(const Canvas& other);
+    // Even-odd fill of closed polygons, 4 sub-rows with exact horizontal coverage.
+    void fillPath(const std::vector<std::vector<IRenderer::Pt>>& contours, Color c);
+    // Bilinear-scaled image (A8R8G8B8, straight alpha) into dst, optional rounded clip.
+    void drawImage(const uint32_t* px, int iw, int ih, const Rect& dst, float alpha, float radius);
 
     static uint32_t pack(Color c) {
         return (static_cast<uint32_t>(c.a) << 24) | (static_cast<uint32_t>(c.r) << 16) |

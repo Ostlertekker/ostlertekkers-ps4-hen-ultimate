@@ -55,6 +55,13 @@
         "target": { "enum": ["internal", "usb"], "default": "internal" },
         "keep": { "type": "integer", "minimum": 1, "maximum": 20, "default": 5 }
       }
+    },
+    "boot": {
+      "type": "object",
+      "properties": {
+        "animation": { "enum": ["inferno", "era1", "era2", "era3", "era4", "era5", "random", "off"], "default": "inferno" },
+        "sound": { "enum": ["builtin", "custom", "off"], "default": "builtin" }
+      }
     }
   }
 }

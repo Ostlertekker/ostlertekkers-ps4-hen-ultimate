@@ -1,7 +1,8 @@
-// PS4 HEN ULTIMATE - app/screens_games_cheats.cpp
+// OSTLERTEKKERS HEN - app/screens_games_cheats.cpp
 // Games, Homebrew and the Cheat Center.
 #include <algorithm>
 #include <cctype>
+#include <functional>
 
 #include "app/app.h"
 #include "app/screens.h"
@@ -45,6 +46,31 @@ const CheatFile* findCheat(App& app, const std::string& fileName) {
 
 // =================================================================== Games
 
+namespace {
+constexpr int kGridCols = 5;
+constexpr int kGridRows = 2;
+constexpr float kCellW = 214, kCellH = 318, kCellGap = 20;
+
+// Icon or a generated placeholder tile (initials on a theme gradient).
+void drawGameIcon(App& app, IRenderer& r, const Theme& t, const Fonts& f, const GameInfo& g, const Rect& rc, float radius) {
+    const TextureId tex = app.iconTexture(g);
+    if (tex) {
+        r.drawTexture(tex, rc, 1.0f, radius);
+    } else {
+        const size_t k = std::hash<std::string>{}(g.titleId) % std::max<size_t>(1, t.tileGradients.size());
+        const auto grad = t.tileGradients.empty() ? std::make_pair(t.accent, t.accent2) : t.tileGradients[k];
+        r.gradientRect(rc, grad.first, grad.second, radius);
+        std::string ini;
+        for (char c : g.name) {
+            if (std::isalnum(static_cast<unsigned char>(c)) && (ini.empty() || ini.size() < 2)) ini += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+            if (ini.size() == 2) break;
+        }
+        r.drawText(f.h2, ini.empty() ? "?" : ini, rc.x + rc.w / 2, rc.y + rc.h / 2 - 28, withAlpha({255, 255, 255, 255}, 0.92f), TextAlign::Center);
+    }
+    r.strokeRect(rc, withAlpha(t.text, 0.10f), 1.5f, radius);
+}
+}  // namespace
+
 GamesScreen::GamesScreen(App& app, bool homebrew) : Screen(app), homebrew_(homebrew) {}
 
 void GamesScreen::onEnter() {
@@ -53,7 +79,7 @@ void GamesScreen::onEnter() {
 }
 
 void GamesScreen::rebuild() {
-    const std::string key = list_.current() ? list_.current()->key : "";
+    const std::string key = focus_ < static_cast<int>(ids_.size()) ? ids_[static_cast<size_t>(focus_)] : "";
     std::vector<const GameInfo*> v;
     for (const auto& g : app_.games().all()) {
         if (g.homebrew != homebrew_) continue;
@@ -68,34 +94,31 @@ void GamesScreen::rebuild() {
         v.push_back(&g);
     }
     if (sortById_) std::sort(v.begin(), v.end(), [](const GameInfo* a, const GameInfo* b) { return a->titleId < b->titleId; });
-    list_.items.clear();
-    int restore = 0;
+    // Favourites first.
+    std::stable_sort(v.begin(), v.end(), [this](const GameInfo* a, const GameInfo* b) {
+        return app_.favorites().isGame(a->titleId) && !app_.favorites().isGame(b->titleId);
+    });
+    ids_.clear();
+    focus_ = 0;
     for (const GameInfo* g : v) {
-        ListItem it;
-        it.key = g->titleId;
-        it.title = g->name;
-        it.subtitle = g->titleId + " \xC2\xB7 " + (g->version.empty() ? app_.t("common.unknown") : "v" + g->version) +
-                      " \xC2\xB7 " + toString(g->region);
-        it.star = app_.favorites().isGame(g->titleId);
-        if (!homebrew_) {
-            const size_t n = app_.cheats().forTitle(g->titleId).size();
-            if (n) {
-                it.badge = std::to_string(n) + " " + app_.t("games.cheatFiles");
-                it.badgeColor = app_.theme().accent2;
-            }
-        }
-        if (it.key == key) restore = static_cast<int>(list_.items.size());
-        list_.items.push_back(it);
+        if (g->titleId == key) focus_ = static_cast<int>(ids_.size());
+        ids_.push_back(g->titleId);
     }
-    list_.setFocus(restore);
 }
 
 ScreenResult GamesScreen::handle(const InputEvent& ev) {
-    if (list_.handle(ev.action)) return ScreenResult::none();
-    const ListItem* cur = list_.current();
+    const int n = static_cast<int>(ids_.size());
+    const std::string cur = focus_ < n ? ids_[static_cast<size_t>(focus_)] : "";
     switch (ev.action) {
+        case Action::Left: if (focus_ % kGridCols > 0) --focus_; break;
+        case Action::Right: if (focus_ % kGridCols < kGridCols - 1 && focus_ + 1 < n) ++focus_; break;
+        case Action::Up: if (focus_ >= kGridCols) focus_ -= kGridCols; break;
+        case Action::Down:
+            if (focus_ + kGridCols < n) focus_ += kGridCols;
+            else if (focus_ / kGridCols < (n - 1) / kGridCols) focus_ = n - 1;
+            break;
         case Action::Context:
-            if (cur) { app_.favorites().toggleGame(cur->key); rebuild(); }
+            if (!cur.empty()) { app_.favorites().toggleGame(cur); rebuild(); }
             break;
         case Action::Search:
             filter_ = (filter_ + 1) % (homebrew_ ? 2 : 3);
@@ -103,10 +126,7 @@ ScreenResult GamesScreen::handle(const InputEvent& ev) {
             app_.toast(app_.t("games.filter." + std::to_string(filter_)));
             break;
         case Action::Confirm:
-            if (cur && !homebrew_) {
-                app_.setCheatQuery(cur->key);
-                return ScreenResult::goTo("cheats");
-            }
+            if (!cur.empty()) return ScreenResult::push(std::unique_ptr<Screen>(new GameDetailScreen(app_, cur)));
             break;
         case Action::Menu: {
             std::vector<MenuAction> a;
@@ -119,6 +139,10 @@ ScreenResult GamesScreen::handle(const InputEvent& ev) {
             a.push_back({sortById_ ? app_.t("games.sortName") : app_.t("games.sortId"), "", [this]() {
                              sortById_ = !sortById_; rebuild(); return ScreenResult::pop();
                          }});
+            if (!homebrew_)
+                a.push_back({app_.t("online.title"), app_.t("online.menuDetail"), [this]() {
+                                 return ScreenResult::replace(std::unique_ptr<Screen>(new OnlineCheatsScreen(app_, "")));
+                             }});
             a.push_back({app_.t("menu.rescan"), "", [this]() { app_.ensureScanned(true); rebuild(); return ScreenResult::pop(); }});
             return ScreenResult::push(std::unique_ptr<Screen>(new ActionMenuScreen(app_, app_.t("menu.title"), a)));
         }
@@ -128,12 +152,7 @@ ScreenResult GamesScreen::handle(const InputEvent& ev) {
 }
 
 std::vector<std::pair<std::string, std::string>> GamesScreen::hints() const {
-    std::vector<std::pair<std::string, std::string>> h;
-    if (!homebrew_) h.push_back({"@confirm", "games.showCheats"});
-    h.push_back({"\xE2\x96\xB3", "hint.favorite"});
-    h.push_back({"\xE2\x96\xA1", "hint.filter"});
-    h.push_back({"OPT", "hint.menu"});
-    return h;
+    return {{"@confirm", "games.open"}, {"\xE2\x96\xB3", "hint.favorite"}, {"\xE2\x96\xA1", "hint.filter"}, {"OPT", "hint.menu"}};
 }
 
 void GamesScreen::draw(const UiContext& ctx) {
@@ -145,39 +164,192 @@ void GamesScreen::draw(const UiContext& ctx) {
                       app_.t("games.filter." + std::to_string(filter_));
     if (!query_.empty()) sub += " \xC2\xB7 \"" + query_ + "\"";
     const float y = drawPageHeader(ctx, app_, app_.t(homebrew_ ? "module.homebrew" : "module.games"), sub);
-    list_.draw(r, t, f, {kMarginX, y, 1150, 1000 - y}, ctx.time, app_.t(total ? "games.noMatch" : "games.none"));
+    const int n = static_cast<int>(ids_.size());
+    const Rect p{kMarginX + 1190, y, kScreenW - 2 * kMarginX - 1190, 1000 - y};
 
-    const Rect p{kMarginX + 1180, y, kScreenW - 2 * kMarginX - 1180, 1000 - y};
-    drawPanel(r, t, p, t.cornerRadius);
-    const ListItem* cur = list_.current();
-    const GameInfo* g = cur ? app_.games().find(cur->key) : nullptr;
-    if (!g) {
-        float yy = p.y + 30;
+    if (n == 0) {
+        // Explain why the list is empty (sandbox, no titles, filter).
+        const Rect box{kMarginX, y, 1160, 1000 - y};
+        drawPanel(r, t, box, t.cornerRadius);
+        float yy = box.y + 34;
+        r.drawText(f.title, app_.t(total ? "games.noMatch" : "games.none"), box.x + 30, yy, t.text);
+        yy += 64;
+        std::string why;
+        if (!total) {
+            const std::string& note = app_.gameScanNote();
+            if (!app_.games().notes().empty()) why = app_.t("games.scanError") + " " + app_.games().notes().front();
+            if (!note.empty() && note != "goldhen-sdk") why += (why.empty() ? "" : "\n") + app_.t("games.noSandboxEscape") + " " + note;
+            if (why.empty()) why = app_.t("games.noneHelp");
+        }
+        for (const auto& line : wrapText(r, f.body, why, box.w - 60)) {
+            r.drawText(f.body, line, box.x + 30, yy, t.textMuted);
+            yy += 36;
+        }
+        drawPanel(r, t, p, t.cornerRadius);
+        float py = p.y + 30;
         for (const auto& line : wrapText(r, f.small, app_.t("games.sourceNote"), p.w - 56)) {
-            r.drawText(f.small, line, p.x + 28, yy, t.textMuted);
-            yy += 30;
+            r.drawText(f.small, line, p.x + 28, py, t.textMuted);
+            py += 30;
         }
         return;
     }
+
+    focus_ = std::max(0, std::min(focus_, n - 1));
+    const int row = focus_ / kGridCols;
+    if (row < top_) top_ = row;
+    if (row >= top_ + kGridRows) top_ = row - kGridRows + 1;
+    for (int i = top_ * kGridCols; i < n && i < (top_ + kGridRows) * kGridCols; ++i) {
+        const GameInfo* g = app_.games().find(ids_[static_cast<size_t>(i)]);
+        if (!g) continue;
+        const int rr = i / kGridCols - top_, cc = i % kGridCols;
+        const Rect cell{kMarginX + cc * (kCellW + kCellGap), y + rr * (kCellH + kCellGap), kCellW, kCellH};
+        const bool foc = i == focus_;
+        if (foc) r.fillRect(inflate(cell, 6), withAlpha(t.surfaceAlt, 0.95f), 22);
+        const Rect icon{cell.x + 7, cell.y + 7, cell.w - 14, cell.w - 14};
+        drawGameIcon(app_, r, t, f, *g, icon, 18);
+        if (app_.favorites().isGame(g->titleId)) {
+            r.fillRect({icon.x + 10, icon.y + 10, 40, 40}, withAlpha({0, 0, 0, 255}, 0.55f), 20);
+            r.drawText(f.bodyBold, "\xE2\x98\x85", icon.x + 30, icon.y + 16, t.warn, TextAlign::Center);
+        }
+        const size_t cheats = homebrew_ ? 0 : app_.cheats().forTitle(g->titleId).size();
+        if (cheats) {
+            const std::string b = std::to_string(cheats) + " " + app_.t(cheats == 1 ? "games.cheatFile1" : "games.cheatFiles");
+            const float bw = pillWidth(r, f, b);
+            drawPill(r, f, b, icon.x + icon.w - bw - 8, icon.y + icon.h - 44, withAlpha({0, 0, 0, 255}, 0.7f), t.accent2);
+        }
+        r.drawText(f.bodyBold, ellipsize(r, f.bodyBold, g->name, cell.w - 14), cell.x + 9, icon.y + icon.h + 14, t.text);
+        r.drawText(f.small, g->titleId + (g->version.empty() ? "" : "  v" + g->version), cell.x + 9, icon.y + icon.h + 52, t.textMuted);
+        if (foc) drawFocusRing(r, t, inflate(cell, 6), 22, ctx.time);
+    }
+    // scroll indicator
+    const int rows = (n + kGridCols - 1) / kGridCols;
+    if (rows > kGridRows) {
+        const float trackX = kMarginX + kGridCols * (kCellW + kCellGap) - 6, trackH = 2 * kCellH + kCellGap;
+        const float th = std::max(40.f, trackH * kGridRows / rows);
+        const float ty = y + (trackH - th) * top_ / std::max(1, rows - kGridRows);
+        r.fillRect({trackX, y, 6, trackH}, withAlpha(t.text, 0.08f), 3);
+        r.fillRect({trackX, ty, 6, th}, withAlpha(t.text, 0.45f), 3);
+    }
+
+    // ---- side panel: focused title
+    drawPanel(r, t, p, t.cornerRadius);
+    const GameInfo* g = app_.games().find(ids_[static_cast<size_t>(focus_)]);
+    if (!g) return;
     r.drawText(f.bodyBold, ellipsize(r, f.bodyBold, g->name, p.w - 56), p.x + 28, p.y + 28, t.text);
-    std::vector<std::pair<std::string, std::string>> rows = {
+    std::vector<std::pair<std::string, std::string>> rows2 = {
         {"Title ID", g->titleId},
         {app_.t("games.version"), g->version.empty() ? app_.t("common.unknown") : g->version},
         {app_.t("games.region"), toString(g->region)},
-        {"Content ID", g->contentId.empty() ? app_.t("common.unknown") : g->contentId},
-        {app_.t("games.category"), g->category.empty() ? "-" : g->category},
+        {app_.t("games.storage"), app_.t(g->external ? "games.storage.ext" : "games.storage.int")},
     };
     if (!homebrew_) {
         size_t ok = 0;
         auto files = app_.cheats().forTitle(g->titleId);
         for (const auto* c : files) if (compatibilityFor(*c, app_.games()) == Compatibility::Compatible) ++ok;
-        rows.push_back({app_.t("games.cheatFilesLong"), std::to_string(files.size()) + " (" + std::to_string(ok) + " " + app_.t("games.matching") + ")"});
+        rows2.push_back({app_.t("games.cheatFilesLong"), std::to_string(files.size()) + " (" + std::to_string(ok) + " " + app_.t("games.matching") + ")"});
     }
-    float yy = drawInfoRows(r, t, f, p.x + 28, p.y + 84, p.w - 56, rows) + 20;
-    for (const auto& line : wrapText(r, f.small, app_.t("games.readOnly"), p.w - 56)) {
+    float yy = drawInfoRows(r, t, f, p.x + 28, p.y + 84, p.w - 56, rows2) + 16;
+    for (const auto& line : wrapText(r, f.small, app_.t("games.openHelp"), p.w - 56)) {
         r.drawText(f.small, line, p.x + 28, yy, t.textMuted);
         yy += 28;
     }
+}
+
+// =================================================================== Game detail
+
+GameDetailScreen::GameDetailScreen(App& app, std::string titleId) : Screen(app), id_(std::move(titleId)) {
+    actions_.rowHeight = 84;
+}
+
+void GameDetailScreen::onEnter() {
+    const int keep = actions_.focus();
+    actions_.items.clear();
+    const GameInfo* g = app_.games().find(id_);
+    if (!g) return;
+    const Theme& t = app_.theme();
+    auto files = app_.cheats().forTitle(id_);
+    size_t ok = 0;
+    for (const auto* c : files) if (compatibilityFor(*c, app_.games()) == Compatibility::Compatible) ++ok;
+    auto add = [&](const std::string& key, const std::string& title, const std::string& sub, const std::string& badge, Color bc) {
+        ListItem it;
+        it.key = key;
+        it.title = title;
+        it.subtitle = sub;
+        it.badge = badge;
+        it.badgeColor = bc;
+        actions_.items.push_back(it);
+    };
+    if (!g->homebrew) {
+        add("cheats", app_.t("detail.cheats"), app_.t("detail.cheatsSub"),
+            std::to_string(files.size()) + " / " + std::to_string(ok) + " " + app_.t("games.matching"), ok ? t.ok : t.textMuted);
+        add("online", app_.t("detail.online"), app_.t("detail.onlineSub"), app_.network() ? "" : app_.t("common.unavailable"),
+            t.warn);
+        add("import", app_.t("detail.import"), app_.t("detail.importSub"), "", t.accent);
+    }
+    add("fav", app_.favorites().isGame(id_) ? app_.t("detail.unfav") : app_.t("detail.fav"), "", "", t.accent);
+    add("folder", app_.t("detail.folder"), app_.cheatRoot(), "", t.accent);
+    add("export", app_.t("detail.export"), app_.t("detail.exportSub"), "", t.accent);
+    actions_.setFocus(std::min(keep, static_cast<int>(actions_.items.size()) - 1));
+}
+
+ScreenResult GameDetailScreen::handle(const InputEvent& ev) {
+    if (ev.action == Action::Back) return ScreenResult::pop();
+    if (actions_.handle(ev.action)) return ScreenResult::none();
+    const ListItem* cur = actions_.current();
+    const GameInfo* g = app_.games().find(id_);
+    if (!g || !cur) return ScreenResult::none();
+    if (ev.action == Action::Context) { app_.favorites().toggleGame(id_); onEnter(); return ScreenResult::none(); }
+    if (ev.action != Action::Confirm) return ScreenResult::none();
+    const std::string& k = cur->key;
+    if (k == "cheats") { app_.setCheatQuery(id_); return ScreenResult::goTo("cheats"); }
+    if (k == "online") return ScreenResult::push(std::unique_ptr<Screen>(new OnlineCheatsScreen(app_, id_)));
+    if (k == "import") return ScreenResult::push(std::unique_ptr<Screen>(new CheatImportScreen(app_)));
+    if (k == "fav") { app_.favorites().toggleGame(id_); onEnter(); app_.toast(app_.t("toast.saved")); }
+    if (k == "folder") return ScreenResult::goTo("files");
+    if (k == "export") {
+        const std::string usb = firstUsbRoot(app_.sysFs());
+        if (usb.empty()) { app_.toast(app_.t("common.noUsb")); return ScreenResult::none(); }
+        std::string info = "Title: " + g->name + "\nTitle ID: " + g->titleId + "\nVersion: " + g->version +
+                           "\nRegion: " + toString(g->region) + "\nContent ID: " + g->contentId + "\nPath: " + g->appPath + "\n\nCheat files:\n";
+        for (const auto* c : app_.cheats().forTitle(id_))
+            info += "  " + c->fileName + "  (" + std::to_string(c->cheats.size()) + " cheats)\n";
+        const std::string dir = usb + "/OSTLERTEKKERS_HEN/export";
+        Status st = makeDirs(app_.sysFs(), app_.guard(), dir);
+        if (st) {
+            auto chk = app_.guard().check(dir + "/" + id_ + ".txt", AccessKind::Write);
+            st = chk ? app_.sysFs().writeFile(chk.value(), info) : Status::fail(chk.error().code, chk.error().message);
+        }
+        for (const auto* c : app_.cheats().forTitle(id_)) {
+            if (!st) break;
+            st = guardedCopy(app_.sysFs(), app_.guard(), c->path, dir + "/" + c->fileName);
+        }
+        app_.toast(st ? app_.t("detail.exported") + " " + dir : app_.t("common.failed") + ": " + st.error().message);
+    }
+    return ScreenResult::none();
+}
+
+std::vector<std::pair<std::string, std::string>> GameDetailScreen::hints() const {
+    return {{"@confirm", "hint.select"}, {"\xE2\x96\xB3", "hint.favorite"}};
+}
+
+void GameDetailScreen::draw(const UiContext& ctx) {
+    IRenderer& r = ctx.renderer;
+    const Theme& t = ctx.theme;
+    const Fonts& f = ctx.fonts;
+    const GameInfo* g = app_.games().find(id_);
+    if (!g) { drawPageHeader(ctx, app_, id_, app_.t("common.unknown")); return; }
+    const float y = drawPageHeader(ctx, app_, ellipsize(r, f.h2, g->name, kScreenW - 2 * kMarginX),
+                                   g->titleId + " \xC2\xB7 " + (g->homebrew ? "Homebrew" : app_.t("module.games")));
+    const Rect icon{kMarginX, y, 340, 340};
+    drawGameIcon(app_, r, t, f, *g, icon, 26);
+    const Rect info{kMarginX, y + 360, 340, 1000 - y - 360};
+    drawPanel(r, t, info, t.cornerRadius);
+    drawInfoRows(r, t, f, info.x + 22, info.y + 22, info.w - 44,
+                 {{app_.t("games.version"), g->version.empty() ? "?" : g->version},
+                  {app_.t("games.region"), toString(g->region)},
+                  {app_.t("games.category"), g->category.empty() ? "-" : (g->category == "gd" || g->category == "gde" || g->category == "gp" || g->category == "ac") ? app_.t("games.cat." + g->category) : g->category},
+                  {app_.t("games.storage"), app_.t(g->external ? "games.storage.ext" : "games.storage.int")}});
+    actions_.draw(r, t, f, {kMarginX + 370, y, kScreenW - 2 * kMarginX - 370, 1000 - y}, ctx.time, "");
 }
 
 // =================================================================== Cheat Center
@@ -254,14 +426,14 @@ ScreenResult CheatsScreen::handle(const InputEvent& ev) {
                          }});
             const ListItem* sel = list_.current();
             const std::string usb = firstUsbRoot(app_.sysFs());
-            MenuAction exp{app_.t("cheats.export"), usb.empty() ? app_.t("common.noUsb") : usb + "/PS4HENULTIMATE/export/cheats", nullptr,
+            MenuAction exp{app_.t("cheats.export"), usb.empty() ? app_.t("common.noUsb") : usb + "/OSTLERTEKKERS_HEN/export/cheats", nullptr,
                            sel != nullptr && !usb.empty()};
             if (sel) {
                 const std::string file = sel->key;
                 exp.run = [this, file, usb]() {
                     const CheatFile* f = findCheat(app_, file);
                     if (!f) return ScreenResult::pop();
-                    Status st = guardedCopy(app_.sysFs(), app_.guard(), f->path, usb + "/PS4HENULTIMATE/export/cheats/" + f->fileName);
+                    Status st = guardedCopy(app_.sysFs(), app_.guard(), f->path, usb + "/OSTLERTEKKERS_HEN/export/cheats/" + f->fileName);
                     app_.toast(st ? app_.t("common.exported") : app_.t("common.failed") + ": " + st.error().message);
                     if (!st) app_.log().error("cheat export: " + st.error().message);
                     return ScreenResult::pop();
@@ -348,10 +520,13 @@ void CheatDetailScreen::onEnter() {
 
 void CheatDetailScreen::rebuild() {
     list_.items.clear();
+    indices_.clear();
     const CheatFile* c = findCheat(app_, file_);
     if (!c) return;
-    for (const auto& e : c->cheats) {
+    for (size_t i = 0; i < c->cheats.size(); ++i) {
+        const CheatEntry& e = c->cheats[i];
         if (category_ >= 0 && static_cast<int>(e.category) != category_) continue;
+        indices_.push_back(i);
         ListItem it;
         it.title = e.name;
         it.subtitle = e.description.empty() ? (e.type.empty() ? "" : e.type) : e.description;
@@ -384,12 +559,114 @@ ScreenResult CheatDetailScreen::handle(const InputEvent& ev) {
     } else if (ev.action == Action::Context) {
         app_.favorites().toggleCheat(file_);
         app_.toast(app_.favorites().isCheat(file_) ? app_.t("common.favAdded") : app_.t("common.favRemoved"));
+    } else if (ev.action == Action::Menu) {
+        return openMenu();
     }
     return ScreenResult::none();
 }
 
+bool CheatDetailScreen::editable() const {
+    auto id = parseCheatFileName(file_);
+    return id && id.value().format != CheatFormat::Mc4;
+}
+
+std::string CheatDetailScreen::filePath() const {
+    auto id = parseCheatFileName(file_);
+    return app_.cheatRoot() + "/" + (id ? toString(id.value().format) : "json") + "/" + file_;
+}
+
+std::string CheatDetailScreen::originalBackup() const { return app_.dataRoot() + "/backups/edited-cheats/" + file_; }
+
+bool CheatDetailScreen::writeEdited(const std::string& content, const std::string& doneKey) {
+    IFileSystem& fs = app_.sysFs();
+    const std::string path = filePath();
+    if (!fs.exists(originalBackup())) {
+        Status b = guardedCopy(fs, app_.guard(), path, originalBackup());
+        if (!b) { app_.toast(app_.t("common.failed") + ": " + b.error().message); return false; }
+    }
+    auto chk = app_.guard().check(path, AccessKind::Write);
+    Status w = chk ? fs.writeFile(chk.value(), content) : Status::fail(chk.error().code, chk.error().message);
+    if (!w) {
+        app_.log().error("cheat edit: " + w.error().message);
+        app_.toast(app_.t("common.failed") + ": " + w.error().message);
+        return false;
+    }
+    app_.log().info("cheat file edited: " + path);
+    app_.ensureScanned(true);
+    rebuild();
+    app_.toast(app_.t(doneKey));
+    return true;
+}
+
+void CheatDetailScreen::applyEdit(const CheatEdit& edit, const std::string& doneKey) {
+    auto bytes = app_.sysFs().readFile(filePath(), 8u << 20);
+    if (!bytes) { app_.toast(app_.t("common.failed") + ": " + bytes.error().message); return; }
+    auto out = editCheatFile(file_, bytes.value(), edit);
+    if (!out) { app_.toast(app_.t("common.failed") + ": " + out.error().message); return; }
+    writeEdited(out.value(), doneKey);
+}
+
+ScreenResult CheatDetailScreen::openMenu() {
+    const CheatFile* c = findCheat(app_, file_);
+    if (!c) return ScreenResult::none();
+    const bool canEdit = editable() && c->readable;
+    const int row = list_.focus();
+    const bool hasRow = row >= 0 && static_cast<size_t>(row) < indices_.size();
+    const size_t idx = hasRow ? indices_[static_cast<size_t>(row)] : 0;
+    const std::string cheatName = hasRow ? c->cheats[idx].name : "";
+    std::vector<MenuAction> a;
+    a.push_back({app_.t("edit.remove"), cheatName, [this, idx, cheatName]() {
+                     return ScreenResult::replace(std::unique_ptr<Screen>(new ConfirmScreen(
+                         app_, app_.t("edit.remove"), app_.t("edit.removeConfirm") + "\n" + cheatName + "\n\n" + app_.t("edit.backupNote"),
+                         app_.t("edit.removeDo"), [this, idx]() {
+                             CheatEdit e;
+                             e.op = CheatEditOp::Remove;
+                             e.index = idx;
+                             applyEdit(e, "edit.removed");
+                         }, true)));
+                 }, canEdit && hasRow});
+    a.push_back({app_.t("edit.rename"), cheatName, [this, idx, cheatName]() {
+                     return ScreenResult::replace(std::unique_ptr<Screen>(new KeyboardScreen(
+                         app_, app_.t("edit.rename"), cheatName, [this, idx](const std::string& name) {
+                             if (name.empty()) return;
+                             CheatEdit e;
+                             e.op = CheatEditOp::Rename;
+                             e.index = idx;
+                             e.newName = name;
+                             applyEdit(e, "edit.renamed");
+                         })));
+                 }, canEdit && hasRow});
+    const bool hasBackup = app_.sysFs().exists(originalBackup());
+    a.push_back({app_.t("edit.restore"), originalBackup(), [this]() {
+                     auto bytes = app_.sysFs().readFile(originalBackup(), 8u << 20);
+                     if (!bytes) { app_.toast(app_.t("common.failed") + ": " + bytes.error().message); return ScreenResult::pop(); }
+                     if (writeEdited(bytes.value(), "edit.restored")) {
+                         auto chk = app_.guard().check(originalBackup(), AccessKind::Write);
+                         if (chk) app_.sysFs().remove(chk.value());
+                     }
+                     return ScreenResult::pop();
+                 }, hasBackup});
+    a.push_back({app_.t("edit.deleteFile"), filePath(), [this]() {
+                     return ScreenResult::replace(std::unique_ptr<Screen>(new ConfirmScreen(
+                         app_, app_.t("edit.deleteFile"), app_.t("edit.deleteConfirm") + "\n" + filePath() + "\n\n" + app_.t("edit.backupNote"),
+                         app_.t("edit.deleteDo"), [this]() {
+                             IFileSystem& fs = app_.sysFs();
+                             const std::string keep = app_.dataRoot() + "/backups/replaced-cheats/" + timestampNow() + "_" + file_;
+                             Status b = guardedCopy(fs, app_.guard(), filePath(), keep);
+                             auto chk = app_.guard().check(filePath(), AccessKind::Write);
+                             Status d = !b ? b : chk ? fs.remove(chk.value()) : Status::fail(chk.error().code, chk.error().message);
+                             if (!d) { app_.toast(app_.t("common.failed") + ": " + d.error().message); return; }
+                             app_.log().info("cheat file deleted (backup " + keep + "): " + filePath());
+                             app_.ensureScanned(true);
+                             app_.toast(app_.t("edit.deleted"));
+                         }, true)));
+                 }, true});
+    if (!canEdit) a.front().detail = app_.t("edit.notEditable");
+    return ScreenResult::push(std::unique_ptr<Screen>(new ActionMenuScreen(app_, file_, std::move(a))));
+}
+
 std::vector<std::pair<std::string, std::string>> CheatDetailScreen::hints() const {
-    return {{"\xE2\x96\xA1", "hint.category"}, {"\xE2\x96\xB3", "hint.favorite"}};
+    return {{"\xE2\x96\xA1", "hint.category"}, {"\xE2\x96\xB3", "hint.favorite"}, {"OPT", "hint.edit"}};
 }
 
 void CheatDetailScreen::draw(const UiContext& ctx) {
@@ -434,7 +711,7 @@ void CheatImportScreen::onEnter() {
     usb_ = firstUsbRoot(app_.sysFs());
     if (usb_.empty()) return;
     std::vector<std::string> dirs = {usb_, usb_ + "/GoldHEN/cheats/json", usb_ + "/GoldHEN/cheats/shn",
-                                     usb_ + "/GoldHEN/cheats/mc4", usb_ + "/PS4HENULTIMATE/import"};
+                                     usb_ + "/GoldHEN/cheats/mc4", usb_ + "/OSTLERTEKKERS_HEN/import"};
     for (const auto& d : dirs) {
         auto entries = app_.sysFs().list(d);
         if (!entries) continue;

@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - tests for the software renderer (canvas, fonts, PNG).
+// OSTLERTEKKERS HEN - tests for the software renderer (canvas, fonts, PNG).
 #include <string>
 
 #include "check.h"

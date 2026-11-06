@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - ui/focus.h
+// OSTLERTEKKERS HEN - ui/focus.h
 // Spatial focus navigation: from the focused rectangle, pick the nearest
 // rectangle in the pressed direction. Works for any tile layout.
 #pragma once

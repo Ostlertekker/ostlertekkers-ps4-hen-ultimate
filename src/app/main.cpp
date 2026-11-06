@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - app/main.cpp
+// OSTLERTEKKERS HEN - app/main.cpp
 // Shared entry point for the PS4 build and the desktop build. The platform
 // backend provides createPlatform() and platformSleepMs().
 #ifdef HENU_HAS_MAIN
@@ -27,6 +27,7 @@ int main(int, char**) {
     Platform p = std::move(platform.value());
 
     AppOptions opts;
+    opts.bootSequence = true;
 #ifdef HENU_PS4
     opts.onConsole = true;
 #endif

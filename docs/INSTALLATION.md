@@ -22,7 +22,7 @@ Darin:
 2. USB-Stick an die PS4 anstecken.
 3. **Einstellungen → Debug-Einstellungen → Spiel → Paket-Installationsprogramm** (Englisch: *Settings → Debug Settings → Game → Package Installer*).
 4. Den USB-Speicher wählen und `IV0000-HENU00001_00-PS4HENULTIMATE00.pkg` installieren.
-5. Danach liegt **PS4 HEN ULTIMATE** als eigene Kachel im Startbildschirm.
+5. Danach liegt **OSTLERTEKKERS HEN** als eigene Kachel im Startbildschirm.
 
 ## 4. Bedienung
 
@@ -34,7 +34,7 @@ Darin:
 | L1 / R1 | Bereich wechseln |
 | PS-Taste | zurück ins System-Menü (App läuft weiter) |
 
-In **Einstellungen** kannst du Sprache, Theme, Animationen und die Bestätigungstaste (✕ oder ○) ändern; alles wird sofort gespeichert unter `/data/PS4HENULTIMATE/`.
+In **Einstellungen** kannst du Sprache, Theme, Animationen und die Bestätigungstaste (✕ oder ○) ändern; alles wird sofort gespeichert unter `/data/OSTLERTEKKERS_HEN/`.
 
 ## 5. Wenn etwas nicht klappt
 
@@ -42,20 +42,22 @@ In **Einstellungen** kannst du Sprache, Theme, Animationen und die Bestätigungs
 |---|---|
 | „Debug-Einstellungen“ fehlen | GoldHEN ist nicht aktiv → GoldHEN erneut laden. |
 | PKG wird auf dem Stick nicht gefunden | Datei liegt in einem Ordner oder Stick ist NTFS → ins Hauptverzeichnis, exFAT/FAT32. |
-| App startet mit schwarzem Bild / stürzt ab | Bitte melden: Protokoll liegt unter `/data/PS4HENULTIMATE/logs/app.log` (per GoldHEN-FTP auf Port 2121 abrufbar). |
+| App startet mit schwarzem Bild / stürzt ab | Bitte melden: Protokoll liegt unter `/data/OSTLERTEKKERS_HEN/logs/app.log` (per GoldHEN-FTP auf Port 2121 abrufbar). |
 | Controller reagiert nicht | Controller einmal aus- und wieder einschalten, App neu starten; bitte melden. |
 
 ## 6. Deinstallieren
 
-Kachel im Startbildschirm → OPTIONS → Löschen. Die Einstellungen bleiben in `/data/PS4HENULTIMATE/` liegen und können per FTP gelöscht werden. GoldHEN wird von der App nicht verändert.
+Kachel im Startbildschirm → OPTIONS → Löschen. Die Einstellungen bleiben in `/data/OSTLERTEKKERS_HEN/` liegen und können per FTP gelöscht werden. GoldHEN wird von der App nicht verändert.
 
 ## Status
 
-Diese Version (01.01 / v0.4.0) enthält alle 13 Bereiche. Auf der Konsole bestätigt sind bisher Start, Navigation, Controller, Bildausgabe und Einstellungen (v0.3.0). Die neuen Bereiche (Spiele, Cheats, Themes, GoldHEN-Info, System, Dateien, Netzwerk, Backup, Diagnose) sind am PC mit nachgebauten Konsolen-Ordnern getestet, aber **noch nicht auf einer echten PS4**.
+Diese Version (01.02 / v0.5.0) heißt **OSTLERTEKKERS HEN**. Auf der Konsole bestätigt sind bisher Start, Navigation, Controller, Bildausgabe und Einstellungen. Neu und **noch nicht auf einer echten PS4 getestet**: Start-Intro mit Ton, Internet (Cheat-Download, Updater), Einlesen der installierten Spiele über das GoldHEN-SDK, Bearbeiten von Cheats.
 
-Eingeschränkt (ehrlich gekennzeichnet in der App):
-- Cheats werden verwaltet (anzeigen, suchen, Favoriten, Import/Export von USB); **ein- und ausgeschaltet werden sie im Spiel über das GoldHEN-Menü**.
-- Keine Downloads aus dem Internet; Updates manuell über GitHub Releases.
-- `.mc4`-Dateien sind verschlüsselt und werden nur gezählt, nicht gelesen.
+Eingeschränkt (in der App gekennzeichnet):
+- Cheats werden verwaltet, bearbeitet und geladen; **ein- und ausgeschaltet werden sie im Spiel über das GoldHEN-Menü**.
+- Der Updater legt das neue PKG in `/data/pkg` ab; installiert wird es über den Package Installer (GoldHEN-Menü oder Debug-Einstellungen).
+- `.mc4`-Dateien sind verschlüsselt und werden nur gezählt.
 
-Update von 01.00: einfach das neue PKG installieren. Falls die PS4 die Installation ablehnt, alte App löschen (Einstellungen bleiben in `/data/PS4HENULTIMATE/`).
+Eigener Startsound: eine Datei `boot.wav` (PCM oder Float, mono/stereo, max. 30 s) ins Hauptverzeichnis des USB-Sticks legen, dann Einstellungen → „boot.wav von USB übernehmen“.
+
+Update von 01.01: das neue PKG installieren. Lehnt die PS4 ab, die alte App löschen; Einstellungen bleiben erhalten (der Ordner `/data/PS4HENULTIMATE` wird automatisch nach `/data/OSTLERTEKKERS_HEN` übernommen).

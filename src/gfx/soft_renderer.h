@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - gfx/soft_renderer.h
+// OSTLERTEKKERS HEN - gfx/soft_renderer.h
 // IRenderer on top of Canvas + BitmapFont. Used on every platform: the PS4
 // backend copies the canvas into the VideoOut framebuffer, the desktop
 // backend into an SDL texture, the preview tool into a PNG.
@@ -30,7 +30,9 @@ public:
     void gradientRect(const Rect& r, Color from, Color to, float radius) override;
     void strokeRect(const Rect& r, Color c, float width, float radius) override;
     Result<TextureId> loadPng(const std::string& path) override;
-    void drawTexture(TextureId t, const Rect& dst, float alpha) override;
+    TextureId createTexture(int w, int h, const uint32_t* argb) override;
+    void drawTexture(TextureId t, const Rect& dst, float alpha, float cornerRadius) override;
+    void fillPath(const std::vector<std::vector<Pt>>& contours, Color c) override;
     void freeTexture(TextureId t) override;
     Result<FontId> loadFont(const std::string& path, float size) override;
     void drawText(FontId f, const std::string& utf8, float x, float y, Color c, TextAlign align) override;
@@ -53,6 +55,8 @@ private:
     std::unique_ptr<Canvas> layer_;
     uint64_t layerKey_ = 0, recordingKey_ = 0;
     std::vector<BitmapFont> fonts_;
+    struct Tex { int w = 0, h = 0; std::vector<uint32_t> px; };
+    std::vector<Tex> textures_;   // id = index + 1; freed slots keep w == 0
     std::vector<std::string> texts_;
     Presenter present_;
     uint64_t frames_ = 0;

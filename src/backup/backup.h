@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - backup/backup.h
+// OSTLERTEKKERS HEN - backup/backup.h
 // Backups of dashboard data (settings, favourites, own themes) and optionally
 // the GoldHEN cheat folders. Each backup is a folder
 //   <target>/<stamp>/files/<console path without leading '/'>
@@ -29,7 +29,7 @@ class BackupService {
 public:
     BackupService(IFileSystem& fs, const PathGuard& guard, std::string dataRoot, std::string cheatRoot);
 
-    // target: folder that holds backups, e.g. "/data/PS4HENULTIMATE/backups"
+    // target: folder that holds backups, e.g. "/data/OSTLERTEKKERS_HEN/backups"
     Result<BackupInfo> create(const std::string& target, bool includeCheats, const std::string& stamp);
     std::vector<BackupInfo> list(const std::string& target);
     // Returns empty list if OK, otherwise the files that failed.

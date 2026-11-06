@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - files/path_guard.h
+// OSTLERTEKKERS HEN - files/path_guard.h
 // Every write/delete/move in the dashboard must pass through PathGuard.
 // Default is deny: only explicitly allowed roots are writable.
 #pragma once
@@ -14,7 +14,7 @@ enum class AccessKind { Read, Write };
 
 class PathGuard {
 public:
-    // appDataRoot: the dashboard's own folder, e.g. "/data/PS4HENULTIMATE".
+    // appDataRoot: the dashboard's own folder, e.g. "/data/OSTLERTEKKERS_HEN".
     explicit PathGuard(std::string appDataRoot);
 
     // Normalizes an absolute POSIX path: collapses "//", resolves "." and

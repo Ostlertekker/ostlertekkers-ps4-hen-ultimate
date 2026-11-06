@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - platform/ps4/ps4_platform.cpp
+// OSTLERTEKKERS HEN - platform/ps4/ps4_platform.cpp
 // Native PS4 backend using only the OpenOrbis toolchain:
 //   VideoOut (2 linear A8R8G8B8 framebuffers, vsync flips), ScePad,
 //   UserService, SystemService. Drawing is done by SoftwareRenderer.
@@ -21,6 +21,7 @@
 #include "gfx/soft_renderer.h"
 #include "platform/platform.h"
 #include "platform/posix_fs.h"
+#include "platform/ps4/ps4_services.h"
 
 namespace henu {
 
@@ -204,8 +205,13 @@ Result<Platform> createPlatform() {
     p.renderer.reset(renderer);
     p.input.reset(new Ps4Input);
     p.system.reset(new Ps4SystemInfo);
+    p.audio = createPs4Audio();
+    p.privilege = createPs4Privilege();
+    std::string netErr;
+    p.net = createPs4Network(netErr);
+    if (!p.net) std::printf("[henu] network unavailable: %s\n", netErr.c_str());
     p.bundleRoot = "/app0";
-    p.dataRoot = "/data/PS4HENULTIMATE";
+    p.dataRoot = "/data/OSTLERTEKKERS_HEN";
     p.sysRoot = "";
     return R::ok(std::move(p));
 }

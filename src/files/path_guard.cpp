@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - files/path_guard.cpp
+// OSTLERTEKKERS HEN - files/path_guard.cpp
 #include "files/path_guard.h"
 
 #include <utility>
@@ -11,6 +11,8 @@ const char* const kCheatDirs[] = {
     "/data/GoldHEN/cheats/shn",
     "/data/GoldHEN/cheats/mc4",
 };
+const char kUpdatePkgPrefix[] = "/data/pkg/OSTLERTEKKERS_HEN";
+const size_t kUpdatePkgPrefixLen = sizeof(kUpdatePkgPrefix) - 1;
 }  // namespace
 
 PathGuard::PathGuard(std::string appDataRoot) {
@@ -93,6 +95,10 @@ Result<std::string> PathGuard::check(const std::string& path, AccessKind kind) c
         if (isUnder(p, prot))
             return Result<std::string>::fail(ErrorCode::AccessDenied, "protected system path: " + p);
     }
+    // Online updater: only its own package files directly inside /data/pkg
+    // (the folder GoldHEN's Package Installer reads, source "hdd").
+    if (p.compare(0, kUpdatePkgPrefixLen, kUpdatePkgPrefix) == 0 && p.find('/', 10) == std::string::npos)
+        return norm;
     // Writable root folders themselves may not be deleted/replaced, only their contents.
     for (const auto& root : writable_) {
         if (p == root)

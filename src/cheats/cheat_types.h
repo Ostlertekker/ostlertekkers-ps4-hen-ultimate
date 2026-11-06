@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - cheats/cheat_types.h
+// OSTLERTEKKERS HEN - cheats/cheat_types.h
 // Data model for the Cheat Center. Matches the GoldHEN cheat file layout:
 //   /data/GoldHEN/cheats/{json,shn,mc4}/{TITLEID}_{VERSION}[_{process}].{format}
 // (documented in github.com/GoldHEN/GoldHEN_Cheat_Repository README)

@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - app/favorites.h
+// OSTLERTEKKERS HEN - app/favorites.h
 // Favourite games, favourite cheat files and recently opened cheat files.
 // Stored in <dataRoot>/favorites.json (dashboard data only).
 #pragma once

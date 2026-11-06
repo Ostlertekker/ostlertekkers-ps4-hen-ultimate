@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - ui/draw.h
+// OSTLERTEKKERS HEN - ui/draw.h
 // Shared drawing helpers and animation utilities. All coordinates are in
 // the logical 1920x1080 space.
 #pragma once

@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/version.h
+// OSTLERTEKKERS HEN - core/version.h
 // PS4 application versions ("01.00", "01.23") and dashboard semver ("1.0.0").
 #pragma once
 

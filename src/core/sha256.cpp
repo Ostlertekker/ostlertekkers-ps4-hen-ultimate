@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/sha256.cpp
+// OSTLERTEKKERS HEN - core/sha256.cpp
 #include "core/sha256.h"
 
 #include <cstdio>

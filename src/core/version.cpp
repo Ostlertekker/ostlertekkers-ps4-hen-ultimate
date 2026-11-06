@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/version.cpp
+// OSTLERTEKKERS HEN - core/version.cpp
 #include "core/version.h"
 
 #include <cstdio>

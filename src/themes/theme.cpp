@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - themes/theme.cpp
+// OSTLERTEKKERS HEN - themes/theme.cpp
 #include "themes/theme.h"
 
 #include <cstdio>

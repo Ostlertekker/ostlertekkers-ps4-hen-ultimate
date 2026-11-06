@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - settings/settings.h
+// OSTLERTEKKERS HEN - settings/settings.h
 // Persistent dashboard settings (schema: schemas/settings.schema.json).
 #pragma once
 
@@ -31,6 +31,8 @@ struct Settings {
     bool updateCheckOnStart = false;
     std::string backupTarget = "internal";   // internal | usb
     int backupKeep = 5;
+    std::string bootAnimation = "inferno";   // inferno | era1..era5 | random | off
+    std::string bootSound = "builtin";       // builtin | custom | off
 };
 
 // Invalid/unknown values are replaced by defaults (never fails on content);
@@ -40,7 +42,7 @@ Json settingsToJson(const Settings& s);
 
 class SettingsStore {
 public:
-    // dir: app data root, e.g. "/data/PS4HENULTIMATE"
+    // dir: app data root, e.g. "/data/OSTLERTEKKERS_HEN"
     SettingsStore(IFileSystem& fs, std::string dir);
 
     // Order: settings.json -> settings.json.bak -> defaults.

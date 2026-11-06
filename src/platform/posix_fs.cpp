@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - platform/posix_fs.cpp
+// OSTLERTEKKERS HEN - platform/posix_fs.cpp
 #include "platform/posix_fs.h"
 
 #include <dirent.h>
@@ -95,6 +95,23 @@ Status PosixFileSystem::writeFile(const std::string& path, const std::string& da
     if (::fsync(fd) != 0) {
         ::close(fd);
         return Status::fail(ErrorCode::IoError, errText("fsync " + path));
+    }
+    if (::close(fd) != 0) return Status::fail(ErrorCode::IoError, errText("close " + path));
+    return Status::ok();
+}
+
+Status PosixFileSystem::appendFile(const std::string& path, const std::string& data) {
+    int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    if (fd < 0) return Status::fail(errCode(), errText("open " + path));
+    size_t off = 0;
+    while (off < data.size()) {
+        ssize_t n = ::write(fd, data.data() + off, data.size() - off);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            ::close(fd);
+            return Status::fail(ErrorCode::IoError, errText("write " + path));
+        }
+        off += static_cast<size_t>(n);
     }
     if (::close(fd) != 0) return Status::fail(ErrorCode::IoError, errText("close " + path));
     return Status::ok();

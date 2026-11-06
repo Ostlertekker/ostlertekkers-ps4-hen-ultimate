@@ -1,8 +1,10 @@
-// PS4 HEN ULTIMATE - gfx/soft_renderer.cpp
+// OSTLERTEKKERS HEN - gfx/soft_renderer.cpp
 #include "gfx/soft_renderer.h"
 
 #include <algorithm>
 #include <cmath>
+
+#include "gfx/png_decode.h"
 
 namespace henu {
 
@@ -41,12 +43,41 @@ void SoftwareRenderer::strokeRect(const Rect& r, Color c, float width, float rad
 }
 
 Result<TextureId> SoftwareRenderer::loadPng(const std::string& path) {
-    // PNG decoding (covers, backgrounds) follows with the modules that need it.
-    return Result<TextureId>::fail(ErrorCode::Unsupported, "PNG textures not implemented yet: " + path);
+    auto bytes = fs_.readFile(path, 16 * 1024 * 1024);
+    if (!bytes) return Result<TextureId>::fail(bytes.error().code, bytes.error().message);
+    auto img = decodePng(bytes.value());
+    if (!img) return Result<TextureId>::fail(img.error().code, path + ": " + img.error().message);
+    return Result<TextureId>::ok(createTexture(img.value().w, img.value().h, img.value().px.data()));
 }
 
-void SoftwareRenderer::drawTexture(TextureId, const Rect&, float) {}
-void SoftwareRenderer::freeTexture(TextureId) {}
+TextureId SoftwareRenderer::createTexture(int w, int h, const uint32_t* argb) {
+    if (w <= 0 || h <= 0 || !argb) return 0;
+    Tex t;
+    t.w = w;
+    t.h = h;
+    t.px.assign(argb, argb + static_cast<size_t>(w) * h);
+    for (size_t i = 0; i < textures_.size(); ++i)
+        if (textures_[i].w == 0) { textures_[i] = std::move(t); return static_cast<TextureId>(i + 1); }
+    textures_.push_back(std::move(t));
+    return static_cast<TextureId>(textures_.size());
+}
+
+void SoftwareRenderer::drawTexture(TextureId id, const Rect& dst, float alpha, float radius) {
+    if (id == 0 || id > textures_.size() || textures_[id - 1].w == 0) return;
+    flushClear();
+    const Tex& t = textures_[id - 1];
+    canvas_.drawImage(t.px.data(), t.w, t.h, dst, alpha, radius);
+}
+
+void SoftwareRenderer::freeTexture(TextureId id) {
+    if (id == 0 || id > textures_.size()) return;
+    textures_[id - 1] = Tex();
+}
+
+void SoftwareRenderer::fillPath(const std::vector<std::vector<Pt>>& contours, Color c) {
+    flushClear();
+    canvas_.fillPath(contours, c);
+}
 
 Result<FontId> SoftwareRenderer::loadFont(const std::string& path, float size) {
     auto bytes = fs_.readFile(path, 8 * 1024 * 1024);

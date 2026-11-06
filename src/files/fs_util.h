@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - files/fs_util.h
+// OSTLERTEKKERS HEN - files/fs_util.h
 // Recursive helpers on top of IFileSystem. Writing helpers check PathGuard.
 #pragma once
 

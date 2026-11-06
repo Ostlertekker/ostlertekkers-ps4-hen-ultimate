@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/result.h
+// OSTLERTEKKERS HEN - core/result.h
 // Lightweight value-or-error type. No exceptions cross module boundaries.
 #pragma once
 

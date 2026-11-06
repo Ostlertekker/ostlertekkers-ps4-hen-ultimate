@@ -1,10 +1,11 @@
-// PS4 HEN ULTIMATE - platform/platform.h
+// OSTLERTEKKERS HEN - platform/platform.h
 // Platform abstraction. Modules use ONLY these interfaces.
 //   platform/ps4/  -> OpenOrbis + SDL-PS4 implementation (Phase C)
 //   platform/host/ -> desktop implementation for development and tests
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -33,8 +34,15 @@ public:
     virtual void strokeRect(const Rect& r, Color c, float width, float cornerRadius = 0) = 0;
 
     virtual Result<TextureId> loadPng(const std::string& path) = 0;
-    virtual void drawTexture(TextureId t, const Rect& dst, float alpha = 1.0f) = 0;
+    // Texture from A8R8G8B8 pixels (non-premultiplied), copied.
+    virtual TextureId createTexture(int w, int h, const uint32_t* argb) { (void)w; (void)h; (void)argb; return 0; }
+    virtual void drawTexture(TextureId t, const Rect& dst, float alpha = 1.0f, float cornerRadius = 0) = 0;
     virtual void freeTexture(TextureId t) = 0;
+
+    // Anti-aliased filled path made of closed polygons (even-odd rule), e.g.
+    // a ring is an outer and an inner circle.
+    struct Pt { float x, y; };
+    virtual void fillPath(const std::vector<std::vector<Pt>>& contours, Color c) { (void)contours; (void)c; }
 
     virtual Result<FontId> loadFont(const std::string& ttfPath, float pixelSize) = 0;
     virtual void drawText(FontId f, const std::string& utf8, float x, float y, Color c,
@@ -99,6 +107,16 @@ public:
     virtual Status remove(const std::string& path) = 0;
     virtual Result<SpaceInfo> space(const std::string& mountPath) = 0;
     // Default: whole file in memory. PosixFileSystem streams instead.
+    // Appends to a file (created if missing). Default: read + rewrite.
+    virtual Status appendFile(const std::string& path, const std::string& data) {
+        std::string cur;
+        if (exists(path)) {
+            auto r = readFile(path, 512u << 20);
+            if (!r) return Status::fail(r.error().code, r.error().message);
+            cur = std::move(r.value());
+        }
+        return writeFile(path, cur + data);
+    }
     virtual Status copyFile(const std::string& from, const std::string& to, uint64_t maxBytes = 64ull << 20) {
         auto data = readFile(from, static_cast<size_t>(maxBytes));
         if (!data) return Status::fail(data.error().code, data.error().message);
@@ -119,6 +137,7 @@ public:
     Status rename(const std::string& a, const std::string& b) override { return in_.rename(pre_ + a, pre_ + b); }
     Status remove(const std::string& p) override { return in_.remove(pre_ + p); }
     Result<SpaceInfo> space(const std::string& p) override { return in_.space(pre_ + p); }
+    Status appendFile(const std::string& p, const std::string& d) override { return in_.appendFile(pre_ + p, d); }
     Status copyFile(const std::string& a, const std::string& b, uint64_t m) override {
         return in_.copyFile(pre_ + a, pre_ + b, m);
     }
@@ -162,18 +181,55 @@ struct HttpResponse {
 class INetwork {
 public:
     virtual ~INetwork() = default;
-    // HTTPS only; certificate verification must be on. maxBytes caps memory.
+    // Chunk sink for streaming downloads; return false to cancel.
+    using Sink = std::function<bool(const char* data, size_t len, uint64_t done, uint64_t total)>;
+    // HTTPS GET, redirects followed, certificate verification on. The body is
+    // collected up to maxBytes (more -> error).
     virtual Result<HttpResponse> get(const std::string& httpsUrl, size_t maxBytes) = 0;
-    virtual Status download(const std::string& httpsUrl, const std::string& destPath,
-                            size_t maxBytes) = 0;
+    // Streams the body of a 200 response into sink. total = 0 if unknown.
+    virtual Status stream(const std::string& httpsUrl, uint64_t maxBytes, const Sink& sink) = 0;
 };
 
 // ---------------------------------------------------------------- Audio
 class IAudio {
 public:
     virtual ~IAudio() = default;
-    virtual Result<uint32_t> loadWav(const std::string& path) = 0;
-    virtual void play(uint32_t soundId, float volume) = 0;
+    // Plays interleaved stereo int16 @ 48 kHz in the background (replaces
+    // whatever is playing). Returns immediately.
+    virtual void playStereo48k(std::vector<int16_t> samples) = 0;
+    virtual void stop() = 0;
+    virtual bool playing() const = 0;
+};
+
+// ---------------------------------------------------------------- Privilege
+// Leaving the app sandbox to READ installed titles (/user/app, appmeta).
+// PS4: GoldHEN SDK jailbreak/unjailbreak (syscall 500, docs/API_NACHWEIS.md G8).
+// While elevated, /app0 is not reachable; callers keep the scope short and
+// restore() afterwards. Writes stay governed by PathGuard.
+class IPrivilege {
+public:
+    virtual ~IPrivilege() = default;
+    virtual bool elevate(std::string& why) = 0;
+    virtual void restore() = 0;
+};
+
+// RAII helper.
+class ElevatedScope {
+public:
+    explicit ElevatedScope(IPrivilege* p) : p_(p) {
+        if (p_) ok_ = p_->elevate(why_);
+    }
+    ~ElevatedScope() { if (p_ && ok_) p_->restore(); }
+    bool ok() const { return ok_; }
+    bool attempted() const { return p_ != nullptr; }
+    const std::string& why() const { return why_; }
+    ElevatedScope(const ElevatedScope&) = delete;
+    ElevatedScope& operator=(const ElevatedScope&) = delete;
+
+private:
+    IPrivilege* p_;
+    bool ok_ = false;
+    std::string why_;
 };
 
 // ---------------------------------------------------------------- Bundle
@@ -184,9 +240,10 @@ struct Platform {
     std::unique_ptr<ISystemInfo> system;
     std::unique_ptr<INetwork> net;   // may be null -> network features unavailable
     std::unique_ptr<IAudio> audio;   // may be null -> sound unavailable
+    std::unique_ptr<IPrivilege> privilege;   // may be null -> no sandbox escape (desktop)
 
     std::string bundleRoot;   // read-only app files (assets), e.g. "/app0"
-    std::string dataRoot;     // writable app data, e.g. "/data/PS4HENULTIMATE"
+    std::string dataRoot;     // writable app data, e.g. "/data/OSTLERTEKKERS_HEN"
     std::string sysRoot;      // prefix for console paths ("" on PS4, demo folder on desktop)
 };
 

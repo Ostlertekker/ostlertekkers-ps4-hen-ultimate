@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/capability.cpp
+// OSTLERTEKKERS HEN - core/capability.cpp
 #include "core/capability.h"
 
 namespace henu {

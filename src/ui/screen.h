@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - ui/screen.h
+// OSTLERTEKKERS HEN - ui/screen.h
 // Each module provides one or more Screens. The app keeps a stack per
 // section: Confirm pushes a sub-screen, Back pops, L1/R1 switch sections.
 #pragma once

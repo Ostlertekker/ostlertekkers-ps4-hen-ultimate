@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - themes/theme.h
+// OSTLERTEKKERS HEN - themes/theme.h
 // Theme model + JSON loader (schema: schemas/theme.schema.json).
 #pragma once
 

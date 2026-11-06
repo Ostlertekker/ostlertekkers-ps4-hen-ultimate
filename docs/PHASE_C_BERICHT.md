@@ -37,4 +37,4 @@ Stand: 2026-11-06 · Version 0.3.0-phaseC
 1. Bibliotheksliste des SDL2-Ports (`LIBS` im Makefile).
 2. DS4 als `SDL_GameController` erkannt? Wenn nicht: Joystick-Mapping nötig.
 3. `SDL_RenderGeometry` braucht SDL ≥ 2.0.18 im Port.
-4. Pfade `/app0` und `/data/PS4HENULTIMATE` auf der Konsole bestätigen.
+4. Pfade `/app0` und `/data/OSTLERTEKKERS_HEN` auf der Konsole bestätigen.

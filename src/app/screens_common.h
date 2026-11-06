@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - app/screens_common.h
+// OSTLERTEKKERS HEN - app/screens_common.h
 // Shared pieces for module screens: page header, confirm dialog, action
 // menu (OPTIONS) and an on-screen keyboard for searching.
 #pragma once

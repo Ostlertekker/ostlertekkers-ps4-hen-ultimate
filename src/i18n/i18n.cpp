@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - i18n/i18n.cpp
+// OSTLERTEKKERS HEN - i18n/i18n.cpp
 #include "i18n/i18n.h"
 
 #include <vector>

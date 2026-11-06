@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - goldhen/support_table.cpp
+// OSTLERTEKKERS HEN - goldhen/support_table.cpp
 // Firmware support per GoldHEN build, taken ONLY from developer changelogs.
 // Sources (2026-11-06):
 //   v2.4b18     github.com/GoldHEN/GoldHEN/releases  -> 5.05, 6.71/6.72, 9.00,

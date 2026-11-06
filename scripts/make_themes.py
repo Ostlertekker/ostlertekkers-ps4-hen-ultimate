@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PS4 HEN ULTIMATE - generates the bundled themes (assets/themes/*.json).
+"""OSTLERTEKKERS HEN - generates the bundled themes (assets/themes/*.json).
 All themes are original colour sets (no third-party artwork).
 Run from project root: python3 scripts/make_themes.py
 """
@@ -65,7 +65,7 @@ def theme(tid, de, en, cat, mode, bg, acc, acc2, amb):
                  ["#236d69", "#183b43"], ["#80602e", "#40331f"], ["#454d65", "#252d40"]]
     return {
         "schemaVersion": 1, "id": tid, "name": {"de": de, "en": en},
-        "author": "PS4 HEN ULTIMATE", "license": "GPL-3.0-or-later",
+        "author": "OSTLERTEKKERS HEN", "license": "GPL-3.0-or-later",
         "category": cat, "mode": mode,
         "colors": {"background": bg, "surface": surface, "surfaceAlt": surface_alt, "text": text,
                    "textMuted": muted, "accent": acc, "accent2": acc2, "focus": focus, "line": line,

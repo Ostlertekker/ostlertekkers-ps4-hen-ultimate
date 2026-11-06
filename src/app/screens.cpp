@@ -1,9 +1,14 @@
-// PS4 HEN ULTIMATE - app/screens.cpp
+// OSTLERTEKKERS HEN - app/screens.cpp
 #include "app/screens.h"
 
+#include <algorithm>
 #include <cmath>
 
 #include "app/app.h"
+#include "app/screens_common.h"
+#include "audio/audio.h"
+#include "goldhen/goldhen_info.h"
+#include "files/fs_util.h"
 #include "ui/focus.h"
 
 namespace henu {
@@ -130,9 +135,16 @@ void HomeScreen::draw(const UiContext& ctx) {
     drawPanel(r, th, sp, th.cornerRadius);
     r.drawText(f.bodyBold, app_.t("home.status"), sp.x + 28, sp.y + 24, th.text);
     struct Row { std::string k, v; Color c; };
+    if (!statusRead_) {   // once per visit, not every frame
+        statusRead_ = true;
+        const SystemSnapshot snap = app_.systemInfo();
+        firmware_ = snap.firmware.known ? snap.firmware.value : "";
+        goldhenFolder_ = detectGoldhen(app_.sysFs()).folderFound;
+    }
     const Row rows[] = {
-        {app_.t("common.firmware"), app_.t("common.notQueried"), th.textMuted},
-        {"GoldHEN", app_.t("common.notQueried"), th.textMuted},
+        {app_.t("common.firmware"), firmware_.empty() ? app_.t("common.notQueried") : firmware_,
+         firmware_.empty() ? th.textMuted : th.text},
+        {"GoldHEN", app_.t(goldhenFolder_ ? "home.goldhenFound" : "home.goldhenMissing"), goldhenFolder_ ? th.ok : th.warn},
         {app_.t("home.themeLabel"), th.name(lang), th.text},
         {app_.t("home.modulesReady"),
          [&] {
@@ -250,8 +262,29 @@ void ModuleScreen::draw(const UiContext& ctx) {
 
 SettingsScreen::SettingsScreen(App& app) : Screen(app) {}
 
+void SettingsScreen::importWav() {
+    const std::string usb = firstUsbRoot(app_.sysFs());
+    if (usb.empty()) { app_.toast(app_.t("settings.wav.noUsb")); return; }
+    const std::string from = usb + "/boot.wav";
+    if (!app_.sysFs().exists(from)) { app_.toast(app_.t("settings.wav.notFound") + " " + from); return; }
+    auto bytes = app_.sysFs().readFile(from, 64u << 20);
+    if (!bytes) { app_.toast(bytes.error().message); return; }
+    auto wav = decodeWav(bytes.value(), 30);
+    if (!wav) { app_.toast(app_.t("settings.wav.invalid") + " " + wav.error().message); return; }
+    Status st = guardedCopy(app_.sysFs(), app_.guard(), from, app_.customBootSoundPath());
+    if (!st) { app_.toast(st.error().message); return; }
+    Settings s = app_.settings();
+    s.bootSound = "custom";
+    if (s.volume == 0) { s.volume = 70; s.soundEnabled = true; }
+    app_.updateSettings(s);
+    app_.log().info("boot.wav imported from " + from);
+    app_.toast(app_.t("settings.wav.done"));
+}
+
 std::vector<std::pair<std::string, std::string>> SettingsScreen::hints() const {
     if (focus_ == Reset) return {{"@confirm", "hint.reset"}};
+    if (focus_ == BootPreview) return {{"@confirm", "hint.play"}};
+    if (focus_ == ImportWav) return {{"@confirm", "hint.import"}};
     return {{"<>", "hint.change"}};
 }
 
@@ -267,6 +300,14 @@ void SettingsScreen::change(int delta) {
         case ThemeRow: s.themeId = app_.themes().neighbour(s.themeId, delta); break;
         case Animations: s.animations = cycle({"full", "reduced", "off"}, s.animations); break;
         case ConfirmButton: s.confirmButton = cycle({"cross", "circle"}, s.confirmButton); break;
+        case BootAnim:
+            s.bootAnimation = cycle({"inferno", "era1", "era2", "era3", "era4", "era5", "random", "off"}, s.bootAnimation);
+            break;
+        case BootSound: s.bootSound = cycle({"builtin", "custom", "off"}, s.bootSound); break;
+        case Volume:
+            s.volume = std::max(0, std::min(100, (s.volume / 10) * 10 + delta * 10));
+            s.soundEnabled = s.volume > 0;
+            break;
         default: return;
     }
     if (app_.updateSettings(s)) app_.toast(app_.t("toast.saved"));
@@ -293,6 +334,11 @@ ScreenResult SettingsScreen::handle(const InputEvent& ev) {
                     resetArmed_ = false;
                     if (app_.updateSettings(Settings())) app_.toast(app_.t("settings.resetDone"));
                 }
+            } else if (focus_ == BootPreview) {
+                const std::string a = app_.settings().bootAnimation;
+                app_.startBoot(a == "off" ? "random" : a);
+            } else if (focus_ == ImportWav) {
+                importWav();
             } else {
                 change(+1);
             }
@@ -306,7 +352,7 @@ ScreenResult SettingsScreen::handle(const InputEvent& ev) {
 }
 
 void SettingsScreen::update(const UiContext& ctx) {
-    highlightTarget_ = 360.f + focus_ * 96.f;
+    highlightTarget_ = 330.f + focus_ * 66.f;
     highlightY_ = (highlightY_ < 0 || !ctx.animate) ? highlightTarget_
                                                      : approach(highlightY_, highlightTarget_, ctx.dt, 18.f * ctx.animSpeed);
     if (std::fabs(highlightY_ - highlightTarget_) < 0.3f) highlightY_ = highlightTarget_;
@@ -320,43 +366,50 @@ void SettingsScreen::draw(const UiContext& ctx) {
     const Fonts& f = ctx.fonts;
     const Settings& s = app_.settings();
 
-    r.drawText(f.label, app_.t("module.eyebrow"), kMarginX, 170, th.accent);
-    r.drawText(f.h1, app_.t("module.settings"), kMarginX, 196, th.text);
-    r.drawText(f.body, app_.t("settings.sub"), kMarginX, 290, th.textMuted);
+    drawPageHeader(ctx, app_, app_.t("module.settings"), app_.t("settings.sub"));
 
-    const float listW = 1100;
-    const std::string values[RowCount] = {
+    const float listW = 1100, rowY0 = 330, rowStep = 66, rowH = 58;
+    const bool hasWav = app_.sysFs().exists(app_.customBootSoundPath());
+    std::string values[RowCount] = {
         s.language == "de" ? "Deutsch" : "English",
         app_.theme().name(s.language),
         app_.t("settings.anim." + s.animations),
         s.confirmButton == "cross" ? app_.t("settings.confirm.cross") : app_.t("settings.confirm.circle"),
+        s.bootAnimation == "random" || s.bootAnimation == "off" ? app_.t("settings.boot." + s.bootAnimation)
+                                                                : app_.t("boot.style." + s.bootAnimation),
+        app_.t("settings.sound." + s.bootSound) + (s.bootSound == "custom" && !hasWav ? " (" + app_.t("settings.wav.missing") + ")" : ""),
+        s.volume == 0 ? app_.t("settings.volumeOff") : std::to_string(s.volume) + " %",
+        "",
+        hasWav ? app_.t("settings.wav.present") : "",
         resetArmed_ ? app_.t("settings.resetArmed") : "",
     };
     const char* labels[RowCount] = {"settings.language", "settings.theme", "settings.animations",
-                                    "settings.confirmButton", "settings.reset"};
+                                    "settings.confirmButton", "settings.bootAnim", "settings.bootSound",
+                                    "settings.volume", "settings.bootPreview", "settings.importWav", "settings.reset"};
 
-    // focus highlight (animated)
-    Rect hl{kMarginX, highlightY_, listW, 84};
-    r.fillRect(hl, withAlpha(th.surfaceAlt, 0.95f), 18);
-    drawFocusRing(r, th, hl, 18, ctx.time);
+    Rect hl{kMarginX, highlightY_, listW, rowH};
+    r.fillRect(hl, withAlpha(th.surfaceAlt, 0.95f), 16);
+    drawFocusRing(r, th, hl, 16, ctx.time);
 
     for (int i = 0; i < RowCount; ++i) {
-        const float y = 360.f + i * 96.f;
-        if (i != focus_) r.fillRect({kMarginX, y, listW, 84}, withAlpha(th.surface, th.surfaceOpacity * 0.85f), 18);
-        r.drawText(f.bodyBold, app_.t(labels[i]), kMarginX + 32, y + 27, i == Reset ? th.error : th.text);
-        if (i != Reset) {
+        const float y = rowY0 + i * rowStep;
+        const float ty = y + (rowH - 36) / 2;
+        const bool action = i == Reset || i == BootPreview || i == ImportWav;
+        if (i != focus_) r.fillRect({kMarginX, y, listW, rowH}, withAlpha(th.surface, th.surfaceOpacity * 0.85f), 16);
+        r.drawText(f.bodyBold, app_.t(labels[i]), kMarginX + 32, ty, i == Reset ? th.error : th.text);
+        if (!action) {
             const float vx = kMarginX + listW - 32;
-            r.drawText(f.bodyBold, values[i], vx - 30, y + 27, th.text, TextAlign::Right);
+            r.drawText(f.bodyBold, values[i], vx - 30, ty, th.text, TextAlign::Right);
             float vw = r.measureText(f.bodyBold, values[i]);
-            r.drawText(f.bodyBold, "<", vx - 30 - vw - 22, y + 27, withAlpha(th.text, i == focus_ ? 0.9f : 0.3f), TextAlign::Right);
-            r.drawText(f.bodyBold, ">", vx, y + 27, withAlpha(th.text, i == focus_ ? 0.9f : 0.3f), TextAlign::Right);
+            r.drawText(f.bodyBold, "<", vx - 30 - vw - 22, ty, withAlpha(th.text, i == focus_ ? 0.9f : 0.3f), TextAlign::Right);
+            r.drawText(f.bodyBold, ">", vx, ty, withAlpha(th.text, i == focus_ ? 0.9f : 0.3f), TextAlign::Right);
         } else if (!values[i].empty()) {
-            r.drawText(f.small, values[i], kMarginX + listW - 32, y + 31, th.warn, TextAlign::Right);
+            r.drawText(f.small, values[i], kMarginX + listW - 32, ty + 4, i == Reset ? th.warn : th.textMuted, TextAlign::Right);
         }
     }
 
     // ---- theme preview + storage info
-    const Rect pv{kMarginX + listW + 32, 360, kScreenW - 2 * kMarginX - listW - 32, 470};
+    const Rect pv{kMarginX + listW + 32, 330, kScreenW - 2 * kMarginX - listW - 32, 470};
     drawPanel(r, th, pv, th.cornerRadius);
     r.drawText(f.label, app_.t("settings.preview"), pv.x + 28, pv.y + 28, th.textMuted);
     r.drawText(f.title, th.name(s.language), pv.x + 28, pv.y + 58, th.text);

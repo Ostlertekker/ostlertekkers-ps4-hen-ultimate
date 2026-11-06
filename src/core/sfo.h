@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/sfo.h
+// OSTLERTEKKERS HEN - core/sfo.h
 // Reader/writer for PS4 param.sfo files (PSF format).
 // Layout: header "\0PSF", version, keyTableStart, dataTableStart, count;
 // then `count` index entries {u16 keyOffset, u16 fmt, u32 len, u32 maxLen,

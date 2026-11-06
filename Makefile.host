@@ -1,4 +1,4 @@
-# PS4 HEN ULTIMATE - host build (PC). Builds the platform-neutral core and
+# OSTLERTEKKERS HEN - host build (PC). Builds the platform-neutral core and
 # runs unit tests. Needs only a C++17 compiler (clang++ or g++).
 #
 #   make -f Makefile.host test

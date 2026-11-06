@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - ui/draw.cpp
+// OSTLERTEKKERS HEN - ui/draw.cpp
 #include "ui/draw.h"
 
 namespace henu {

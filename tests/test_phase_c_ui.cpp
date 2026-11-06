@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - tests for input, focus navigation and the App.
+// OSTLERTEKKERS HEN - tests for input, focus navigation and the App.
 // Uses the real assets from the project root (run tests from there).
 #include <sys/stat.h>
 
@@ -237,6 +237,15 @@ static void testSettingsPersist() {
         t.press(Action::Down);
         t.press(Action::Right);                  // confirm button cross -> circle
         CHECK(t.app->settings().confirmButton == "circle");
+        t.press(Action::Down);
+        t.press(Action::Right);                  // boot intro inferno -> era1
+        CHECK(t.app->settings().bootAnimation == "era1");
+        t.press(Action::Down);
+        t.press(Action::Right);                  // sound builtin -> custom
+        CHECK(t.app->settings().bootSound == "custom");
+        t.press(Action::Down);
+        t.press(Action::Left);                   // volume 70 -> 60
+        CHECK(t.app->settings().volume == 60);
     }
     {
         TestApp t(dir);                           // "restart"
@@ -244,9 +253,10 @@ static void testSettingsPersist() {
         CHECK(t.app->settings().language == "en");
         CHECK(t.app->settings().themeId == expectedTheme);
         CHECK(t.app->settings().confirmButton == "circle");
+        CHECK(t.app->settings().bootAnimation == "era1" && t.app->settings().volume == 60);
         // reset needs two confirmations
         for (int i = 0; i < 4; ++i) t.press(Action::PrevSection);
-        for (int i = 0; i < 4; ++i) t.press(Action::Down);
+        t.press(Action::Up);                      // wraps to the last row: reset
         t.press(Action::Confirm);
         CHECK(t.app->settings().language == "en");   // armed only
         t.press(Action::Confirm);

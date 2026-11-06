@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PS4 HEN ULTIMATE - completes the <rootdir> of a GP4 made by create-gp4.
+"""OSTLERTEKKERS HEN - completes the <rootdir> of a GP4 made by create-gp4.
 
 create-gp4 (OpenOrbis v0.5.4) writes a fixed directory tree (sce_sys/about,
 sce_module, assets/{audio,fonts,images,misc,videos}). PkgTool.Core then

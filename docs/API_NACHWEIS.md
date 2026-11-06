@@ -22,6 +22,9 @@ Zahlenwerte (Pixelformat `0x80000000`, lineares Tiling `1`, Vsync-Flip `1`) steh
 | P7 | `sceNetCtlInit`, `sceNetCtlGetInfo(14, …)` (IP-Adresse) | OpenOrbis `include/orbis/NetCtl.h` | 🟡 v0.4.0, auf Konsole ungetestet; Fehler → „nicht verbunden“ |
 | P8 | `sceKernelGetSystemSwVersion` (BCD → „13.52“) | OpenOrbis `include/orbis/libkernel.h` | 🟡 v0.4.0 |
 | P9 | `sceSystemServiceParamGetInt` (Sprache = 1, Bestätigungstaste = 1000) | OpenOrbis `include/orbis/SystemService.h` | 🟡 v0.4.0; Fehler → Standardwerte |
+| P10 | Audio: `sceAudioOutInit`, `sceAudioOutOpen(SYSTEM-User, MAIN, 0, 256, 48000, S16_STEREO)`, `sceAudioOutOutput` (blockiert je 256 Frames, eigener Thread) | OpenOrbis `samples/audio-wav/audio-wav/main.cpp` | 🟡 v0.5.0, auf Konsole ungetestet; Fehler → kein Ton, App läuft weiter |
+| P11 | HTTPS: `sceSysmoduleLoadModuleInternal(NET/HTTP/SSL)`, `sceNetInit`, `sceNetPoolCreate`, `sceSslInit`, `sceHttpInit/CreateTemplate/CreateConnectionWithURL/CreateRequestWithURL/SendRequest/GetStatusCode/GetResponseContentLength/ReadData`, Weiterleitung über `sceHttpGetAllResponseHeaders` (Location) | OpenOrbis `samples/net_http/net_http/main.c`. **Abweichung:** das Beispiel schaltet die Zertifikatsprüfung ab (`skipSslCallback`) – hier bleibt sie an | 🟡 v0.5.0, auf Konsole ungetestet |
+| P12 | Threads: `std::thread` / `std::mutex` (libc++) | OpenOrbis `samples/threading` | 🟡 v0.5.0 |
 
 ## Desktop-Plattform (`src/platform/sdl/`, nur Entwicklung)
 
@@ -36,7 +39,7 @@ Zahlenwerte (Pixelformat `0x80000000`, lineares Tiling `1`, Vsync-Flip `1`) steh
 | F1 | POSIX `open/read/write/fsync/rename/mkdir/opendir/stat/unlink/rmdir` | OpenOrbis-Toolchain linkt gegen eine musl-libc (github.com/OpenOrbis/musl) | ✅ auf PC getestet · 🟡 PS4 |
 | F2 | `statvfs` (Speicherplatz) | POSIX/musl | 🟡 auf PS4 unbestätigt; Fehler → „nicht verfügbar“ |
 | F3 | `/app0/…` = Dateien aus dem PKG (nur lesen) | Verwendung in OpenOrbis-Samples | 🟡 auf Konsole prüfen |
-| F4 | `/data/PS4HENULTIMATE/` = App-Daten (schreibbar) | Übliche Homebrew-Praxis (z. B. LÖVE-PS4: `/data/love/`) | 🟡 |
+| F4 | `/data/OSTLERTEKKERS_HEN/` = App-Daten (schreibbar) | Übliche Homebrew-Praxis (z. B. LÖVE-PS4: `/data/love/`) | 🟡 |
 
 ## GoldHEN
 
@@ -47,6 +50,9 @@ Zahlenwerte (Pixelformat `0x80000000`, lineares Tiling `1`, Vsync-Flip `1`) steh
 | G3 | `config.ini` `/data/GoldHEN/config.ini` | GoldHEN-Changelog v2.1 | Phase F, nur lesend |
 | G4 | Laufende GoldHEN-Version auslesen | – | ❌ keine dokumentierte Quelle gefunden → wird als „nicht abgefragt“ angezeigt |
 | G6 | Installierte Spiele: `/user/app/<ID>/`, Metadaten `/system_data/priv/appmeta/<ID>/param.sfo`; Version = max(APP_VER, VERSION) wie im GoldHEN Cheat Manager | GoldHEN_Cheat_Manager-Quellcode, Apollo-PS4 | 🟡 nur lesend, auf Konsole ungetestet |
+| G8 | Lesezugriff auf `/user/app` und `appmeta` außerhalb der App-Sandbox: GoldHEN-SDK `syscall(500, cmd, data)` mit `GOLDHEN_SDK_CMD_VERSION = 0`, `JAILBREAK = 2`, `UNJAILBREAK = 3` und `struct jailbreak_backup` (Felder 1:1 übernommen); nur für die Dauer des Einlesens, danach sofort zurückgesetzt | GoldHEN_Plugins_SDK (MIT) `include/GoldHEN.h`, `source/GoldHEN.c`, `source/Syscall.c` – am 2026-11-06 gegen den Quelltext geprüft | 🟡 v0.5.0, auf Konsole ungetestet; antwortet GoldHEN nicht, zeigt die App den Grund an |
+| G9 | Online-Cheats: Indexdateien `https://goldhen.github.io/GoldHEN_Cheat_Repository/{json,shn,mc4}.txt` (Zeilen `DATEI=Spielname`), Dateien unter `<base>/<format>/<datei>` – dieselbe Quelle wie der offizielle GoldHEN Cheat Manager | GoldHEN_Cheat_Manager `include/cheats.h` (ONLINE_URL) | 🟡 v0.5.0; heruntergeladene Dateien werden vor dem Speichern geparst |
+| G10 | PKG-Ablage für Updates: `/data/pkg/` (interne Paketinstallation) | GoldHEN-README „Internal pkg installation support (/data/pkg)“ | 🟡 v0.5.0; die App installiert nicht selbst |
 | G7 | Homebrew-Erkennung: Content-ID beginnt mit `IV` | OpenOrbis/PkgTool-Konvention | 🟡 |
 | G5 | Cheats einer laufenden Sitzung aus fremder App schalten | – | ❌ nicht belegt → nicht umgesetzt |
 

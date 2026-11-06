@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - gfx/font.h
+// OSTLERTEKKERS HEN - gfx/font.h
 // Pre-rendered bitmap font (.hfnt, made by scripts/make_fonts.py).
 #pragma once
 

@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/sha256.h (FIPS 180-4)
+// OSTLERTEKKERS HEN - core/sha256.h (FIPS 180-4)
 #pragma once
 
 #include <cstddef>

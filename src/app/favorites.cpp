@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - app/favorites.cpp
+// OSTLERTEKKERS HEN - app/favorites.cpp
 #include "app/favorites.h"
 
 #include <algorithm>

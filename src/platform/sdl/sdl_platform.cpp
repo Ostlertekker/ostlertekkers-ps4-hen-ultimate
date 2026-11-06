@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - platform/sdl/sdl_platform.cpp
+// OSTLERTEKKERS HEN - platform/sdl/sdl_platform.cpp
 // Desktop backend (macOS/Linux/Windows) for development: SDL2 shows the
 // SoftwareRenderer canvas - exactly the pixels the PS4 shows - and maps
 // keyboard and gamepads to the PS4 buttons. Needs only SDL2 (no ttf/image).
@@ -101,6 +101,31 @@ public:
     }
 };
 
+class SdlAudio : public IAudio {
+public:
+    SdlAudio() {
+        SDL_AudioSpec want, have;
+        SDL_zero(want);
+        want.freq = 48000;
+        want.format = AUDIO_S16SYS;
+        want.channels = 2;
+        want.samples = 1024;
+        dev_ = SDL_OpenAudioDevice(nullptr, 0, &want, &have, 0);
+        if (dev_) SDL_PauseAudioDevice(dev_, 0);
+    }
+    ~SdlAudio() override { if (dev_) SDL_CloseAudioDevice(dev_); }
+    void playStereo48k(std::vector<int16_t> samples) override {
+        if (!dev_) return;
+        SDL_ClearQueuedAudio(dev_);
+        SDL_QueueAudio(dev_, samples.data(), static_cast<Uint32>(samples.size() * sizeof(int16_t)));
+    }
+    void stop() override { if (dev_) SDL_ClearQueuedAudio(dev_); }
+    bool playing() const override { return dev_ && SDL_GetQueuedAudioSize(dev_) > 0; }
+
+private:
+    SDL_AudioDeviceID dev_ = 0;
+};
+
 std::string envOr(const char* name, const char* def) {
     const char* v = std::getenv(name);
     return (v && *v) ? v : def;
@@ -111,9 +136,9 @@ std::string envOr(const char* name, const char* def) {
 Result<Platform> createPlatform() {
     using R = Result<Platform>;
     SDL_SetMainReady();
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS) != 0)
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER | SDL_INIT_EVENTS | SDL_INIT_AUDIO) != 0)
         return R::fail(ErrorCode::Unsupported, std::string("SDL_Init: ") + SDL_GetError());
-    g_display.win = SDL_CreateWindow("PS4 HEN ULTIMATE (Desktop)", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+    g_display.win = SDL_CreateWindow("OSTLERTEKKERS HEN (Desktop)", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                      kW / 2, kH / 2, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!g_display.win) return R::fail(ErrorCode::Unsupported, std::string("SDL_CreateWindow: ") + SDL_GetError());
     g_display.ren = SDL_CreateRenderer(g_display.win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -132,10 +157,11 @@ Result<Platform> createPlatform() {
     p.renderer.reset(r);
     p.input.reset(new SdlInput);
     p.system.reset(new NullSystemInfo);
+    p.audio.reset(new SdlAudio);
     p.bundleRoot = envOr("HENU_BUNDLE", ".");
     // Console paths ("/data/...", "/mnt/usb0") are mapped below HENU_SYSROOT.
     p.sysRoot = envOr("HENU_SYSROOT", "build/host-root");
-    p.dataRoot = "/data/PS4HENULTIMATE";
+    p.dataRoot = "/data/OSTLERTEKKERS_HEN";
     return R::ok(std::move(p));
 }
 

@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/sfo.cpp
+// OSTLERTEKKERS HEN - core/sfo.cpp
 #include "core/sfo.h"
 
 #include <cstring>

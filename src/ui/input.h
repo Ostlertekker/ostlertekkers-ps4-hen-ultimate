@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - ui/input.h
+// OSTLERTEKKERS HEN - ui/input.h
 // Turns raw pad states into logical actions: edge detection, key repeat for
 // directions, analog stick with deadzone, and the X/O confirm swap.
 #pragma once

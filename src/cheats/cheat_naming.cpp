@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - cheats/cheat_naming.cpp
+// OSTLERTEKKERS HEN - cheats/cheat_naming.cpp
 #include "cheats/cheat_naming.h"
 
 #include <cctype>

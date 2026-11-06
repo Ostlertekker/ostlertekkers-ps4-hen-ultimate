@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - cheats/cheat_db.cpp
+// OSTLERTEKKERS HEN - cheats/cheat_db.cpp
 #include "cheats/cheat_db.h"
 
 #include <algorithm>
@@ -42,7 +42,7 @@ std::string attr(const std::string& tag, const std::string& name) {
 }
 
 // SHN files exist as UTF-8 and as UTF-16 LE/BE with BOM; normalize to UTF-8.
-std::string toUtf8(const std::string& b) {
+std::string utf16ToUtf8(const std::string& b) {
     if (b.size() < 2) return b;
     const unsigned char b0 = static_cast<unsigned char>(b[0]), b1 = static_cast<unsigned char>(b[1]);
     const bool le = b0 == 0xFF && b1 == 0xFE, be = b0 == 0xFE && b1 == 0xFF;
@@ -74,6 +74,8 @@ std::string lower(std::string s) {
     return s;
 }
 }  // namespace
+
+std::string toUtf8(const std::string& bytes) { return utf16ToUtf8(bytes); }
 
 Result<CheatFile> parseCheatFile(const std::string& fileName, const std::string& rawBytes) {
     const std::string& bytes = rawBytes;
@@ -110,7 +112,7 @@ Result<CheatFile> parseCheatFile(const std::string& fileName, const std::string&
         }
         if (!root.has("mods")) return R::fail(ErrorCode::ParseError, fileName + ": no 'mods' array");
     } else {   // SHN (XML, UTF-8 or UTF-16)
-        const std::string bytes = toUtf8(rawBytes);
+        const std::string bytes = utf16ToUtf8(rawBytes);
         const size_t t = bytes.find("<Trainer");
         if (t == std::string::npos) return R::fail(ErrorCode::ParseError, fileName + ": no <Trainer>");
         const size_t te = bytes.find('>', t);

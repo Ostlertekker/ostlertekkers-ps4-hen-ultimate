@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - cheats/cheat_naming.h
+// OSTLERTEKKERS HEN - cheats/cheat_naming.h
 // Parsing/creating GoldHEN cheat file names, title IDs, regions and the
 // compatibility decision. Pure logic, fully unit-tested on host.
 #pragma once

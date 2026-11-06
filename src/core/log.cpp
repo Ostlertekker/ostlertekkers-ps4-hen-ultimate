@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/log.cpp
+// OSTLERTEKKERS HEN - core/log.cpp
 #include "core/log.h"
 
 #include <cstdio>

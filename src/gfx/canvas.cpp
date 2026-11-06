@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - gfx/canvas.cpp
+// OSTLERTEKKERS HEN - gfx/canvas.cpp
 #include "gfx/canvas.h"
 
 #include <algorithm>
@@ -161,6 +161,94 @@ void Canvas::blitMask(const uint8_t* mask, int stride, int sx, int sy, int w, in
             const int x = dx + i;
             if (x < 0 || x >= w_ || m[i] == 0) continue;
             blend(row[x], c, (m[i] * c.a + 127) / 255);
+        }
+    }
+}
+
+void Canvas::fillPath(const std::vector<std::vector<IRenderer::Pt>>& contours, Color c) {
+    if (c.a == 0) return;
+    float minY = 1e9f, maxY = -1e9f;
+    for (const auto& ct : contours)
+        for (const auto& p : ct) { minY = std::min(minY, p.y); maxY = std::max(maxY, p.y); }
+    const int yStart = std::max(0, static_cast<int>(std::floor(minY)));
+    const int yEnd = std::min(h_, static_cast<int>(std::ceil(maxY)));
+    if (yEnd <= yStart) return;
+    std::vector<float> xs;
+    std::vector<float> cov(static_cast<size_t>(w_) + 2, 0.f);
+    for (int y = yStart; y < yEnd; ++y) {
+        int lo = w_, hi = -1;
+        for (int s = 0; s < kSub; ++s) {
+            const float yc = y + (s + 0.5f) / kSub;
+            xs.clear();
+            for (const auto& ct : contours) {
+                const size_t n = ct.size();
+                for (size_t i = 0; i < n; ++i) {
+                    const IRenderer::Pt& a = ct[i];
+                    const IRenderer::Pt& b = ct[(i + 1) % n];
+                    if ((a.y <= yc && b.y > yc) || (b.y <= yc && a.y > yc))
+                        xs.push_back(a.x + (yc - a.y) * (b.x - a.x) / (b.y - a.y));
+                }
+            }
+            std::sort(xs.begin(), xs.end());
+            for (size_t i = 0; i + 1 < xs.size(); i += 2) {
+                const float x0 = std::max(0.f, xs[i]), x1 = std::min(static_cast<float>(w_), xs[i + 1]);
+                if (x1 <= x0) continue;
+                const int ix0 = static_cast<int>(x0), ix1 = static_cast<int>(x1);
+                lo = std::min(lo, ix0);
+                hi = std::max(hi, std::min(ix1, w_ - 1));
+                if (ix0 == ix1) { cov[static_cast<size_t>(ix0)] += x1 - x0; continue; }
+                cov[static_cast<size_t>(ix0)] += (ix0 + 1) - x0;
+                for (int x = ix0 + 1; x < ix1; ++x) cov[static_cast<size_t>(x)] += 1.f;
+                if (ix1 < w_) cov[static_cast<size_t>(ix1)] += x1 - ix1;
+            }
+        }
+        if (hi < lo) continue;
+        uint32_t* row = &px_[static_cast<size_t>(y) * w_];
+        for (int x = lo; x <= hi; ++x) {
+            float v = cov[static_cast<size_t>(x)] / kSub;
+            cov[static_cast<size_t>(x)] = 0;
+            if (v <= 0.002f) continue;
+            if (v > 1) v = 1;
+            blend(row[x], c, static_cast<int>(c.a * v + 0.5f));
+        }
+    }
+}
+
+void Canvas::drawImage(const uint32_t* px, int iw, int ih, const Rect& dst, float alpha, float radius) {
+    if (!px || iw <= 0 || ih <= 0 || dst.w <= 0 || dst.h <= 0 || alpha <= 0) return;
+    const int x0 = std::max(0, static_cast<int>(std::floor(dst.x)));
+    const int y0 = std::max(0, static_cast<int>(std::floor(dst.y)));
+    const int x1 = std::min(w_, static_cast<int>(std::ceil(dst.x + dst.w)));
+    const int y1 = std::min(h_, static_cast<int>(std::ceil(dst.y + dst.h)));
+    const float rad = std::max(0.f, std::min(radius, std::min(dst.w, dst.h) / 2));
+    const float sx = iw / dst.w, sy = ih / dst.h;
+    const int a255 = static_cast<int>(std::min(1.f, alpha) * 255 + 0.5f);
+    for (int y = y0; y < y1; ++y) {
+        float l = dst.x, r = dst.x + dst.w;
+        if (rad > 0) span(dst.x, dst.y, dst.x + dst.w, dst.y + dst.h, rad, y + 0.5f, l, r);
+        if (l >= r) continue;
+        const float fy = (y + 0.5f - dst.y) * sy - 0.5f;
+        const int iy = std::max(0, std::min(ih - 1, static_cast<int>(std::floor(fy))));
+        const int iy2 = std::min(ih - 1, iy + 1);
+        const int wy = static_cast<int>((fy - std::floor(fy)) * 256) & 255;
+        uint32_t* row = &px_[static_cast<size_t>(y) * w_];
+        for (int x = x0; x < x1; ++x) {
+            const float xc = x + 0.5f;
+            if (xc < l || xc > r) continue;
+            const float fx = (xc - dst.x) * sx - 0.5f;
+            const int ix = std::max(0, std::min(iw - 1, static_cast<int>(std::floor(fx))));
+            const int ix2 = std::min(iw - 1, ix + 1);
+            const int wx = static_cast<int>((fx - std::floor(fx)) * 256) & 255;
+            const uint32_t p00 = px[static_cast<size_t>(iy) * iw + ix], p10 = px[static_cast<size_t>(iy) * iw + ix2];
+            const uint32_t p01 = px[static_cast<size_t>(iy2) * iw + ix], p11 = px[static_cast<size_t>(iy2) * iw + ix2];
+            auto ch = [&](int shift) {
+                const int a = (p00 >> shift) & 0xFF, b = (p10 >> shift) & 0xFF;
+                const int c0 = (p01 >> shift) & 0xFF, d = (p11 >> shift) & 0xFF;
+                const int top = a * (256 - wx) + b * wx, bot = c0 * (256 - wx) + d * wx;
+                return (top * (256 - wy) + bot * wy) >> 16;
+            };
+            const Color c{static_cast<uint8_t>(ch(16)), static_cast<uint8_t>(ch(8)), static_cast<uint8_t>(ch(0)), 255};
+            blend(row[x], c, ch(24) * a255 / 255);
         }
     }
 }

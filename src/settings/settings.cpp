@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - settings/settings.cpp
+// OSTLERTEKKERS HEN - settings/settings.cpp
 #include "settings/settings.h"
 
 #include <cmath>
@@ -90,6 +90,10 @@ Settings settingsFromJson(const Json& j, std::vector<std::string>* w) {
     const Json& b = j.get("backup");
     s.backupTarget = pickEnum(b, "target", {"internal", "usb"}, d.backupTarget, w);
     s.backupKeep = pickInt(b, "keep", 1, 20, d.backupKeep, w);
+    const Json& boot = j.get("boot");
+    s.bootAnimation = pickEnum(boot, "animation", {"inferno", "era1", "era2", "era3", "era4", "era5", "random", "off"},
+                               d.bootAnimation, w);
+    s.bootSound = pickEnum(boot, "sound", {"builtin", "custom", "off"}, d.bootSound, w);
     return s;
 }
 
@@ -128,6 +132,10 @@ Json settingsToJson(const Settings& s) {
     b.set("target", Json::string(s.backupTarget));
     b.set("keep", Json::number(s.backupKeep));
     j.set("backup", b);
+    Json boot = Json::object();
+    boot.set("animation", Json::string(s.bootAnimation));
+    boot.set("sound", Json::string(s.bootSound));
+    j.set("boot", boot);
     return j;
 }
 

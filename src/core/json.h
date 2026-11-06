@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/json.h
+// OSTLERTEKKERS HEN - core/json.h
 // Small strict JSON reader/writer. Designed for untrusted import files:
 // size and depth limits, no exceptions, clear error positions.
 #pragma once

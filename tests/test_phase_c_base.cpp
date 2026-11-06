@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - tests for JSON, i18n, themes, settings.
+// OSTLERTEKKERS HEN - tests for JSON, i18n, themes, settings.
 #include <string>
 
 #include "check.h"
@@ -137,33 +137,33 @@ static void testSettings() {
 
     // store: defaults -> save -> load -> backup
     MemFileSystem fs;
-    SettingsStore store(fs, "/data/PS4HENULTIMATE");
+    SettingsStore store(fs, "/data/OSTLERTEKKERS_HEN");
     std::string src;
     CHECK(store.load(&src).language == "de" && src == "defaults");
     CHECK(store.save(a).isOk());
-    CHECK(fs.dirs.count("/data/PS4HENULTIMATE") == 1);
+    CHECK(fs.dirs.count("/data/OSTLERTEKKERS_HEN") == 1);
     CHECK(store.load(&src).themeId == "aurora" && src == "file");
     a.themeId = "crimson";
     CHECK(store.save(a).isOk());
-    CHECK(fs.files.count("/data/PS4HENULTIMATE/settings.json.bak") == 1);
-    CHECK(fs.files.count("/data/PS4HENULTIMATE/settings.json.tmp") == 0);
+    CHECK(fs.files.count("/data/OSTLERTEKKERS_HEN/settings.json.bak") == 1);
+    CHECK(fs.files.count("/data/OSTLERTEKKERS_HEN/settings.json.tmp") == 0);
 
     // corrupt main file -> backup is used
-    fs.files["/data/PS4HENULTIMATE/settings.json"] = "{ broken";
+    fs.files["/data/OSTLERTEKKERS_HEN/settings.json"] = "{ broken";
     CHECK(store.load(&src).themeId == "aurora" && src == "backup");
 
     // failed or corrupted write must not destroy the current file
     CHECK(store.save(a).isOk());
-    const std::string before = fs.files["/data/PS4HENULTIMATE/settings.json"];
+    const std::string before = fs.files["/data/OSTLERTEKKERS_HEN/settings.json"];
     fs.corruptWrites = true;
     Settings c = a;
     c.themeId = "synthwave";
     CHECK(!store.save(c).isOk());
-    CHECK(fs.files["/data/PS4HENULTIMATE/settings.json"] == before);
+    CHECK(fs.files["/data/OSTLERTEKKERS_HEN/settings.json"] == before);
     fs.corruptWrites = false;
     fs.failWrites = true;
     CHECK(!store.save(c).isOk());
-    CHECK(fs.files["/data/PS4HENULTIMATE/settings.json"] == before);
+    CHECK(fs.files["/data/OSTLERTEKKERS_HEN/settings.json"] == before);
     fs.failWrites = false;
 
     CHECK(store.resetToDefaults().isOk() && store.load().themeId == "midnight");

@@ -1,4 +1,4 @@
-# PS4 HEN ULTIMATE - PS4 build with the OpenOrbis PS4 Toolchain
+# OSTLERTEKKERS HEN - PS4 build with the OpenOrbis PS4 Toolchain
 #
 # Requirements (see docs/BUILD.md):
 #   - OpenOrbis PS4 Toolchain (v0.5.4 tested in CI), env var OO_PS4_TOOLCHAIN
@@ -16,11 +16,13 @@
 # Override compilers with e.g.:  make OO_CXX=clang++-18 OO_LD=ld.lld-18
 
 # ---------------------------------------------------------------- identity
-TITLE       := PS4 HEN ULTIMATE
+TITLE       := OSTLERTEKKERS HEN
 TITLE_ID    := HENU00001
 CONTENT_ID  := IV0000-HENU00001_00-PS4HENULTIMATE00
-APP_VER     := 01.01
+APP_VER     := 01.02
 CATEGORY    := gd
+# GitHub Actions run number (the online updater compares it)
+HENU_BUILD  ?= 0
 
 # ---------------------------------------------------------------- toolchain
 TOOLCHAIN := $(OO_PS4_TOOLCHAIN)
@@ -59,9 +61,10 @@ OELF := $(BUILD)/henu.oelf
 # include misses ::abs etc.). gnu++17 keeps musl's POSIX declarations visible.
 CXXFLAGS_PS4 := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -std=gnu++17 \
                 -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include/c++/v1 -isystem $(TOOLCHAIN)/include \
-                -Isrc -I. -Wall -Wextra -O2 -DHENU_PS4=1 -DHENU_HAS_MAIN=1
+                -Isrc -I. -Wall -Wextra -O2 -DHENU_PS4=1 -DHENU_HAS_MAIN=1 -DHENU_BUILD=$(HENU_BUILD)
 
-LIBS := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNetCtl
+LIBS := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNetCtl \
+        -lSceAudioOut -lSceSysmodule -lSceNet -lSceSsl -lSceHttp
 
 LDFLAGS := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr \
            -L$(TOOLCHAIN)/lib $(LIBS) $(TOOLCHAIN)/lib/crt1.o

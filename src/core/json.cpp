@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - core/json.cpp
+// OSTLERTEKKERS HEN - core/json.cpp
 #include "core/json.h"
 
 #include <cmath>

@@ -1,12 +1,14 @@
-// PS4 HEN ULTIMATE - app/app.h
+// OSTLERTEKKERS HEN - app/app.h
 // Owns all services, the section list (from config/features.json), one
 // screen stack per section and the frame loop.
 #pragma once
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "app/boot.h"
 #include "app/favorites.h"
 #include "cheats/cheat_db.h"
 #include "core/capability.h"
@@ -32,9 +34,15 @@ struct ModuleDef {
 
 struct AppOptions {
     bool onConsole = false;   // true on PS4: implemented features count as "unverified" until tested
+    bool bootSequence = false;   // play the boot animation + sound after init (main sets it)
 };
 
-constexpr const char* kAppVersion = "0.4.0";
+constexpr const char* kAppVersion = "0.5.0";
+#ifndef HENU_BUILD
+#define HENU_BUILD 0
+#endif
+constexpr int kBuildNumber = HENU_BUILD;   // GitHub Actions run number, 0 = local build
+constexpr const char* kLegacyDataRoot = "/data/PS4HENULTIMATE";
 
 class App {
 public:
@@ -87,6 +95,19 @@ public:
     std::string takeCheatQuery() { std::string q = cheatQuery_; cheatQuery_.clear(); return q; }
     bool goToSectionById(const std::string& id);
 
+    // ---- boot animation + sound
+    // setting: inferno | era1..era5 | random | off (also used as preview from settings)
+    void startBoot(const std::string& setting);
+    bool booting() const { return boot_ != nullptr; }
+    void playBootSound(const std::string& styleId);
+    std::string customBootSoundPath() const { return platform_.dataRoot + "/boot.wav"; }
+    IAudio* audio() { return platform_.audio.get(); }
+    INetwork* network() { return platform_.net.get(); }
+    IPrivilege* privilege() { return platform_.privilege.get(); }
+    const std::string& gameScanNote() const { return gameScanNote_; }
+    // Icon texture for an installed title (created on first use), 0 = none.
+    TextureId iconTexture(const GameInfo& g);
+
     // True if the last frame() actually rendered (false = idle, nothing changed).
     bool lastFrameDrawn() const { return drawn_; }
 
@@ -134,6 +155,11 @@ private:
     bool dirty_ = true;
     bool drawn_ = false;
     bool toastShown_ = false;
+    bool migrated_ = false;
+    std::unique_ptr<BootSequence> boot_;
+    double bootStart_ = 0;
+    std::string gameScanNote_;
+    std::map<std::string, TextureId> icons_;
 };
 
 }  // namespace henu

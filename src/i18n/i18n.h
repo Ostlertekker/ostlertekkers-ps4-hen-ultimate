@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - i18n/i18n.h
+// OSTLERTEKKERS HEN - i18n/i18n.h
 // Key-based translations from assets/lang/<lang>.json. Lookup order:
 // current language -> English -> the key itself (never empty on screen).
 #pragma once

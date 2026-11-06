@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - app/screens_tools.cpp
+// OSTLERTEKKERS HEN - app/screens_tools.cpp
 // Theme Center, GoldHEN, System, Network, Update, Files, Backup, Diagnostics.
 #include <algorithm>
 #include <cstdlib>
@@ -86,7 +86,7 @@ ScreenResult ThemesScreen::handle(const InputEvent& ev) {
         case Action::Menu: {
             std::vector<MenuAction> a;
             const std::string usb = firstUsbRoot(app_.sysFs());
-            const std::string usbDir = usb + "/PS4HENULTIMATE/themes";
+            const std::string usbDir = usb + "/OSTLERTEKKERS_HEN/themes";
             a.push_back({app_.t("themes.import"), usb.empty() ? app_.t("common.noUsb") : usbDir, [this, usbDir]() {
                              int ok = 0, bad = 0;
                              auto entries = app_.sysFs().list(usbDir);
@@ -271,38 +271,6 @@ void NetworkScreen::draw(const UiContext& ctx) {
     textBlock(ctx, app_.t("network.limits"), q.x + 28, qy, q.w - 56, t.text);
 }
 
-// =================================================================== Update
-
-ScreenResult UpdateScreen::handle(const InputEvent& ev) {
-    if (ev.action == Action::Confirm) {
-        BackupService b(app_.sysFs(), app_.guard(), app_.dataRoot(), app_.cheatRoot());
-        auto res = b.create(app_.dataRoot() + "/backups", false, timestampNow());
-        app_.toast(res ? app_.t("backup.created") : app_.t("common.failed") + ": " + res.error().message);
-    }
-    return ScreenResult::none();
-}
-
-std::vector<std::pair<std::string, std::string>> UpdateScreen::hints() const { return {{"@confirm", "update.backupNow"}}; }
-
-void UpdateScreen::draw(const UiContext& ctx) {
-    IRenderer& r = ctx.renderer;
-    const Theme& t = ctx.theme;
-    const Fonts& f = ctx.fonts;
-    const float y = drawPageHeader(ctx, app_, app_.t("module.update"), app_.t("update.sub"));
-    const Rect p{kMarginX, y, 900, 1000 - y};
-    drawPanel(r, t, p, t.cornerRadius);
-    float yy = drawInfoRows(r, t, f, p.x + 28, p.y + 30, p.w - 56,
-                            {{app_.t("update.installed"), std::string("v") + kAppVersion},
-                             {"Title ID", "HENU00001"},
-                             {app_.t("update.autoCheck"), app_.t("update.autoCheckOff")},
-                             {app_.t("update.source"), "GitHub Releases"}}) + 16;
-    textBlock(ctx, app_.t("update.manual"), p.x + 28, yy, p.w - 56, t.text);
-    const Rect q{kMarginX + 924, y, kScreenW - 2 * kMarginX - 924, 1000 - y};
-    drawPanel(r, t, q, t.cornerRadius);
-    float qy = q.y + 30;
-    textBlock(ctx, app_.t("update.goldhenNote"), q.x + 28, qy, q.w - 56, t.textMuted);
-}
-
 // =================================================================== Files
 
 void FilesScreen::onEnter() { open(dir_); }
@@ -375,7 +343,7 @@ ScreenResult FilesScreen::handle(const InputEvent& ev) {
             auto canDelete = app_.guard().check(path, AccessKind::Write);
             std::vector<MenuAction> a;
             if (!isDir) {
-                const std::string dest = usb + "/PS4HENULTIMATE/export/" + baseName(path);
+                const std::string dest = usb + "/OSTLERTEKKERS_HEN/export/" + baseName(path);
                 a.push_back({app_.t("files.copyUsb"), usb.empty() ? app_.t("common.noUsb") : dest, [this, path, dest]() {
                                  Status st = guardedCopy(app_.sysFs(), app_.guard(), path, dest);
                                  app_.toast(st ? app_.t("common.exported") : app_.t("common.failed") + ": " + st.error().message);
@@ -415,7 +383,7 @@ void FilesScreen::draw(const UiContext& ctx) {
 std::string BackupScreen::target() {
     if (app_.settings().backupTarget == "usb") {
         const std::string usb = firstUsbRoot(app_.sysFs());
-        if (!usb.empty()) return usb + "/PS4HENULTIMATE/backups";
+        if (!usb.empty()) return usb + "/OSTLERTEKKERS_HEN/backups";
     }
     return app_.dataRoot() + "/backups";
 }
@@ -535,9 +503,9 @@ ScreenResult DiagScreen::handle(const InputEvent& ev) {
     if (ev.action == Action::Menu) {
         const std::string usb = firstUsbRoot(app_.sysFs());
         std::vector<MenuAction> a;
-        a.push_back({app_.t("diag.export"), usb.empty() ? app_.t("common.noUsb") : usb + "/PS4HENULTIMATE/diag", [this, usb]() {
+        a.push_back({app_.t("diag.export"), usb.empty() ? app_.t("common.noUsb") : usb + "/OSTLERTEKKERS_HEN/diag", [this, usb]() {
                          app_.log().flush();
-                         const std::string dir = usb + "/PS4HENULTIMATE/diag/" + timestampNow();
+                         const std::string dir = usb + "/OSTLERTEKKERS_HEN/diag/" + timestampNow();
                          Status st = guardedCopy(app_.sysFs(), app_.guard(), app_.dataRoot() + "/logs/app.log", dir + "/app.log");
                          if (st) {
                              std::string caps;

@@ -1,4 +1,4 @@
-// PS4 HEN ULTIMATE - tests for games, cheats, GoldHEN info, backup, fs utils.
+// OSTLERTEKKERS HEN - tests for games, cheats, GoldHEN info, backup, fs utils.
 #include <string>
 
 #include "backup/backup.h"
@@ -74,7 +74,7 @@ static void testGames() {
     fs.dirs.insert("/user/app");
     addGame(fs, "CUSA99901", "Demo Racer", "EP9999-CUSA99901_00-DEMORACER0000000", "01.00", "01.02");
     addGame(fs, "CUSA99902", "Alpha Quest", "UP9999-CUSA99902_00-ALPHAQUEST000000", "01.00", "01.00");
-    addGame(fs, "HENU00001", "PS4 HEN ULTIMATE", "IV0000-HENU00001_00-PS4HENULTIMATE00", "01.00", "01.00");
+    addGame(fs, "HENU00001", "OSTLERTEKKERS HEN", "IV0000-HENU00001_00-PS4HENULTIMATE00", "01.00", "01.00");
     fs.dirs.insert("/user/app/CUSA99903");   // no metadata
     fs.dirs.insert("/user/app/notatitle");
     GameLibrary lib;
@@ -183,53 +183,53 @@ static void testFsUtilAndBackup() {
     CHECK(formatBytes(512) == "512 B" && formatBytes(2048) == "2.0 KB");
 
     MemFileSystem fs;
-    for (const char* d : {"/", "/data", "/data/PS4HENULTIMATE", "/data/GoldHEN", "/data/GoldHEN/cheats",
+    for (const char* d : {"/", "/data", "/data/OSTLERTEKKERS_HEN", "/data/GoldHEN", "/data/GoldHEN/cheats",
                           "/data/GoldHEN/cheats/json", "/mnt", "/mnt/usb0", "/system"})
         fs.dirs.insert(d);
-    PathGuard guard("/data/PS4HENULTIMATE");
-    fs.files["/data/PS4HENULTIMATE/settings.json"] = "{\"schemaVersion\":1}";
-    fs.files["/data/PS4HENULTIMATE/favorites.json"] = "{}";
+    PathGuard guard("/data/OSTLERTEKKERS_HEN");
+    fs.files["/data/OSTLERTEKKERS_HEN/settings.json"] = "{\"schemaVersion\":1}";
+    fs.files["/data/OSTLERTEKKERS_HEN/favorites.json"] = "{}";
     fs.files["/data/GoldHEN/cheats/json/CUSA99901_01.02.json"] = kJson;
     fs.files["/system/secret"] = "x";
 
     CHECK(firstUsbRoot(fs) == "/mnt/usb0");
-    CHECK(makeDirs(fs, guard, "/mnt/usb0/PS4HENULTIMATE/export").isOk());
-    CHECK(fs.dirs.count("/mnt/usb0/PS4HENULTIMATE/export") == 1);
+    CHECK(makeDirs(fs, guard, "/mnt/usb0/OSTLERTEKKERS_HEN/export").isOk());
+    CHECK(fs.dirs.count("/mnt/usb0/OSTLERTEKKERS_HEN/export") == 1);
     CHECK(!makeDirs(fs, guard, "/system/new").isOk());
-    CHECK(guardedCopy(fs, guard, "/system/secret", "/mnt/usb0/PS4HENULTIMATE/export/secret").isOk());   // reading is fine
-    CHECK(!guardedCopy(fs, guard, "/mnt/usb0/PS4HENULTIMATE/export/secret", "/system/secret2").isOk());
+    CHECK(guardedCopy(fs, guard, "/system/secret", "/mnt/usb0/OSTLERTEKKERS_HEN/export/secret").isOk());   // reading is fine
+    CHECK(!guardedCopy(fs, guard, "/mnt/usb0/OSTLERTEKKERS_HEN/export/secret", "/system/secret2").isOk());
     CHECK(!guardedRemoveTree(fs, guard, "/system").isOk());
     CHECK(fs.files.count("/system/secret") == 1);
     CHECK(!guardedRemoveTree(fs, guard, "/data/GoldHEN/config.ini").isOk());   // GoldHEN outside cheat folders
     // missing writable root may be created
     CHECK(makeDirs(fs, guard, "/data/GoldHEN/cheats/shn").isOk());
 
-    BackupService b(fs, guard, "/data/PS4HENULTIMATE", "/data/GoldHEN/cheats");
-    auto r1 = b.create("/data/PS4HENULTIMATE/backups", false, "2026-01-01_10-00-00");
+    BackupService b(fs, guard, "/data/OSTLERTEKKERS_HEN", "/data/GoldHEN/cheats");
+    auto r1 = b.create("/data/OSTLERTEKKERS_HEN/backups", false, "2026-01-01_10-00-00");
     CHECK(r1.isOk() && r1.value().files == 2 && !r1.value().includesCheats);
-    auto r2 = b.create("/mnt/usb0/PS4HENULTIMATE/backups", true, "2026-01-02_10-00-00");
+    auto r2 = b.create("/mnt/usb0/OSTLERTEKKERS_HEN/backups", true, "2026-01-02_10-00-00");
     CHECK(r2.isOk() && r2.value().files == 3);
-    CHECK(!b.create("/data/PS4HENULTIMATE/backups", false, "2026-01-01_10-00-00").isOk());   // exists
+    CHECK(!b.create("/data/OSTLERTEKKERS_HEN/backups", false, "2026-01-01_10-00-00").isOk());   // exists
     CHECK(!b.create("/system/backups", false, "x").isOk());                                   // protected target
-    auto list = b.list("/data/PS4HENULTIMATE/backups");
+    auto list = b.list("/data/OSTLERTEKKERS_HEN/backups");
     CHECK(list.size() == 1 && list[0].manifestOk && list[0].files == 2);
     CHECK(b.verify(r2.value().dir).empty());
 
     // change data, restore, data comes back; a safety backup is made
-    fs.files["/data/PS4HENULTIMATE/settings.json"] = "{\"changed\":true}";
+    fs.files["/data/OSTLERTEKKERS_HEN/settings.json"] = "{\"changed\":true}";
     fs.files.erase("/data/GoldHEN/cheats/json/CUSA99901_01.02.json");
-    CHECK(b.restore(r2.value().dir, "/data/PS4HENULTIMATE/backups/safety", "s1").isOk());
-    CHECK(fs.files["/data/PS4HENULTIMATE/settings.json"] == "{\"schemaVersion\":1}");
+    CHECK(b.restore(r2.value().dir, "/data/OSTLERTEKKERS_HEN/backups/safety", "s1").isOk());
+    CHECK(fs.files["/data/OSTLERTEKKERS_HEN/settings.json"] == "{\"schemaVersion\":1}");
     CHECK(fs.files.count("/data/GoldHEN/cheats/json/CUSA99901_01.02.json") == 1);
-    CHECK(b.list("/data/PS4HENULTIMATE/backups/safety").size() == 1);
+    CHECK(b.list("/data/OSTLERTEKKERS_HEN/backups/safety").size() == 1);
 
     // tampered file -> verify fails and restore is refused
-    fs.files[r1.value().dir + "/files/data/PS4HENULTIMATE/settings.json"] = "tampered";
+    fs.files[r1.value().dir + "/files/data/OSTLERTEKKERS_HEN/settings.json"] = "tampered";
     CHECK(b.verify(r1.value().dir).size() == 1);
-    CHECK(!b.restore(r1.value().dir, "/data/PS4HENULTIMATE/backups/safety", "s2").isOk());
+    CHECK(!b.restore(r1.value().dir, "/data/OSTLERTEKKERS_HEN/backups/safety", "s2").isOk());
 
     CHECK(b.remove(r1.value().dir).isOk());
-    CHECK(b.list("/data/PS4HENULTIMATE/backups").empty() || b.list("/data/PS4HENULTIMATE/backups").size() == 1);
+    CHECK(b.list("/data/OSTLERTEKKERS_HEN/backups").empty() || b.list("/data/OSTLERTEKKERS_HEN/backups").size() == 1);
     CHECK(timestampNow().size() == 19);
 }
 

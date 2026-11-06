@@ -1,12 +1,14 @@
-// PS4 HEN ULTIMATE - app/app.cpp
+// OSTLERTEKKERS HEN - app/app.cpp
 #include "app/app.h"
 
 #include <algorithm>
 #include <functional>
 
 #include "app/screens.h"
+#include "audio/audio.h"
 #include "core/json.h"
 #include "files/fs_util.h"
+#include "ui/logo.h"
 
 namespace henu {
 
@@ -35,13 +37,19 @@ Status App::init() {
     guard_.reset(new PathGuard(platform_.dataRoot));
     IFileSystem& fs = sysFs();
 
+    // v0.4 and older used /data/PS4HENULTIMATE: move it once to the new name.
+    // Both folders belong to this app; nothing else is touched.
+    if (!platform_.dataRoot.empty() && !fs.exists(platform_.dataRoot) && fs.exists(kLegacyDataRoot))
+        migrated_ = fs.rename(kLegacyDataRoot, platform_.dataRoot).isOk();
+
     // App data folder + log file (console path, below sysRoot on desktop)
     if (!platform_.dataRoot.empty()) {
         makeDirsUnchecked(fs, platform_.dataRoot);
         const std::string logDir = platform_.dataRoot + "/logs";
         if (fs.makeDir(logDir)) log_.attachFile(&fs, logDir);
     }
-    log_.info("PS4 HEN ULTIMATE starting (bundle=" + platform_.bundleRoot + ", data=" + platform_.dataRoot + ")");
+    if (migrated_) log_.info(std::string("moved old data folder ") + kLegacyDataRoot + " -> " + platform_.dataRoot);
+    log_.info("OSTLERTEKKERS HEN starting (bundle=" + platform_.bundleRoot + ", data=" + platform_.dataRoot + ")");
 
     loadModules();
     loadLanguages();
@@ -77,6 +85,7 @@ Status App::init() {
     for (size_t i = 0; i < modules_.size(); ++i) stacks_[i].push_back(makeRoot(modules_[i].id));
     section_ = 0;
     top().onEnter();
+    if (opts_.bootSequence) startBoot(settings_.bootAnimation);
     log_.flush();
     return Status::ok();
 }
@@ -204,7 +213,19 @@ SystemSnapshot App::systemInfo() {
 
 void App::ensureScanned(bool force) {
     if (force || !games_.scanned()) {
-        Status st = games_.scan(sysFs());
+        // Installed titles live outside the app sandbox: read them with the
+        // GoldHEN SDK escape for the duration of the scan only.
+        Status st = Status::ok();
+        for (auto& kv : icons_) platform_.renderer->freeTexture(kv.second);
+        icons_.clear();
+        {
+            ElevatedScope elevated(platform_.privilege.get());
+            if (elevated.attempted())
+                gameScanNote_ = elevated.ok() ? "goldhen-sdk" : elevated.why();
+            st = games_.scan(sysFs());
+        }
+        for (const auto& n : games_.notes()) log_.warn("games: " + n);
+        if (!gameScanNote_.empty()) log_.info("games: sandbox access = " + gameScanNote_);
         log_.info("games: " + std::to_string(games_.all().size()) + (st ? "" : " (" + st.error().message + ")"));
     }
     if (force || !cheats_.scanned()) {
@@ -212,6 +233,14 @@ void App::ensureScanned(bool force) {
         log_.info("cheat files: " + std::to_string(cheats_.files().size()) + ", errors: " +
                   std::to_string(cheats_.errors().size()));
     }
+}
+
+TextureId App::iconTexture(const GameInfo& g) {
+    auto it = icons_.find(g.titleId);
+    if (it != icons_.end()) return it->second;
+    TextureId id = g.icon ? platform_.renderer->createTexture(kIconSize, kIconSize, g.icon->data()) : 0;
+    icons_[g.titleId] = id;
+    return id;
 }
 
 void App::rescanThemes() {
@@ -285,6 +314,33 @@ void App::handle(const InputEvent& ev) {
     }
 }
 
+void App::startBoot(const std::string& setting) {
+    const std::string style = resolveBootStyle(setting, static_cast<unsigned>(time_ * 1000) + static_cast<unsigned>(games_.all().size()));
+    if (style.empty()) return;
+    boot_.reset(new BootSequence(style));
+    bootStart_ = time_;
+    playBootSound(style);
+    dirty_ = true;
+}
+
+void App::playBootSound(const std::string& styleId) {
+    if (!platform_.audio || !settings_.soundEnabled || settings_.bootSound == "off") return;
+    Pcm pcm;
+    if (settings_.bootSound == "custom") {
+        auto bytes = sysFs().readFile(customBootSoundPath(), 64u << 20);
+        if (bytes) {
+            auto wav = decodeWav(bytes.value(), 30);
+            if (wav) pcm = std::move(wav.value());
+            else log_.warn("boot.wav: " + wav.error().message);
+        } else {
+            log_.warn("boot.wav: " + bytes.error().message);
+        }
+    }
+    if (pcm.samples.empty()) pcm = synthBootSound(bootSoundVariant(styleId));
+    applyVolume(pcm, settings_.volume / 100.0f);
+    platform_.audio->playStereo48k(std::move(pcm.samples));
+}
+
 bool App::frame(float dt) {
     if (dt < 0) dt = 0;
     if (dt > 0.25f) dt = 0.25f;   // after a stall, do not jump animations
@@ -292,17 +348,40 @@ bool App::frame(float dt) {
 
     PadState pad = platform_.input->poll();
     if (pad.quitRequested) quit_ = true;
-    for (const auto& ev : input_.update(pad, dt)) handle(ev);
+    auto events = input_.update(pad, dt);
+    if (boot_) {
+        const double bt = time_ - bootStart_;
+        const bool skip = !events.empty() && bt > 0.3;
+        if (skip && platform_.audio) platform_.audio->stop();
+        if (skip || boot_->finished(bt)) {
+            boot_.reset();
+            dirty_ = true;
+        } else {
+            IRenderer& r = *platform_.renderer;
+            r.beginFrame({0, 0, 0, 255});
+            boot_->draw(r, fonts_, bt);
+            r.endFrame();
+            drawn_ = true;
+            return !quit_;
+        }
+        events.clear();
+    }
+    for (const auto& ev : events) handle(ev);
 
     const bool animate = settings_.animations != "off";
     const float speedFactor = settings_.animations == "reduced" ? 0.5f : 1.0f;
     UiContext ctx{*platform_.renderer, *theme_, fonts_, time_, dt, animate,
                   theme_->animSpeed * speedFactor};
-    top().update(ctx);
+    // A screen that was busy before update() (animation, network job) gets one
+    // more frame after it settles, so its final state is shown.
+    Screen* before = &top();
+    const bool wasAnimating = before->animating();
+    before->update(ctx);
+    if (&top() != before) dirty_ = true;
 
     // Redraw only when something changed: input, animation, toast.
     const bool toastVisible = time_ < toastUntil_ && !toastText_.empty();
-    const bool needDraw = dirty_ || top().animating() || toastVisible || toastVisible != toastShown_;
+    const bool needDraw = dirty_ || wasAnimating || top().animating() || toastVisible || toastVisible != toastShown_;
     drawn_ = needDraw;
     if (!needDraw) {
         if (time_ >= nextFlush_) { log_.flush(); nextFlush_ = time_ + 5; }
@@ -333,9 +412,12 @@ void App::drawChrome(const UiContext& ctx) {
     const Fonts& f = ctx.fonts;
 
     // ---- top bar: brand
-    r.gradientRect({kMarginX, 38, 56, 56}, mix(th.accent, th.focus, 0.25f), mix(th.accent, th.background, 0.35f), 18);
-    r.drawText(f.title, "H", kMarginX + 28, 47, th.focus, TextAlign::Center);
-    r.drawText(f.bodyBold, "HEN ULTIMATE", kMarginX + 76, 42, th.text);
+    r.gradientRect({kMarginX, 38, 56, 56}, mix(th.accent, th.background, 0.15f), mix(th.accent, th.background, 0.6f), 18);
+    LogoStyle logo;
+    logo.star = th.focus;
+    logo.ring = th.focus;
+    drawPentagram(r, kMarginX + 28, 66, 22, logo);
+    r.drawText(f.bodyBold, kBrandName, kMarginX + 76, 42, th.text);
     r.drawText(f.label, t("app.subtitle"), kMarginX + 76, 76, th.textMuted);
 
     // ---- section switcher: L1  prev  CURRENT  next  R1

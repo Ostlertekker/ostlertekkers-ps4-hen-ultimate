@@ -1,4 +1,4 @@
-# PS4 HEN ULTIMATE – Phase B: Architektur
+# OSTLERTEKKERS HEN – Phase B: Architektur
 
 Stand: 2026-11-06 · baut auf `docs/PHASE_A_ANALYSE.md` auf
 
@@ -179,7 +179,7 @@ Nur für das Dashboard selbst. Ablauf: Versionsdatei von einer festen HTTPS-Quel
 ## 7. App-Datenordner
 
 ```
-/data/PS4HENULTIMATE/
+/data/OSTLERTEKKERS_HEN/
 ├── settings.json (+ .bak)
 ├── themes/           eigene Themes
 ├── cheats/           cheat_index.json, favorites.json, history.json, staging/
@@ -198,7 +198,7 @@ Nur für das Dashboard selbst. Ablauf: Versionsdatei von einer festen HTTPS-Quel
 
 | Feld | Wert |
 |---|---|
-| Titel | PS4 HEN ULTIMATE |
+| Titel | OSTLERTEKKERS HEN |
 | Title ID | `HENU00001` |
 | Content ID | `IV0000-HENU00001_00-PS4HENULTIMATE00` |
 | Kategorie | `gd` (Anwendung) |
