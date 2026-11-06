@@ -25,6 +25,7 @@ public:
     const Theme& getOrFallback(const std::string& id) const;
     // Cycles through themes; returns id of the neighbour.
     std::string neighbour(const std::string& id, int delta) const;
+    void addTheme(const Theme& t) { themes_.push_back(t); }
 
 private:
     void loadDir(IFileSystem& fs, const std::string& dir, bool builtIn);

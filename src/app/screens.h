@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "ui/list_view.h"
 #include "ui/screen.h"
 
 namespace henu {
@@ -63,6 +64,161 @@ private:
     bool resetArmed_ = false;
     float highlightY_ = -1;
     float highlightTarget_ = -1;
+};
+
+// ---------------------------------------------------------------- Games / Homebrew
+class GamesScreen : public Screen {
+public:
+    GamesScreen(App& app, bool homebrew);
+    void onEnter() override;
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    void rebuild();
+    bool homebrew_;
+    int filter_ = 0;          // 0 all, 1 favourites, 2 with cheats
+    bool sortById_ = false;
+    std::string query_;
+    ListView list_;
+};
+
+// ---------------------------------------------------------------- Cheat Center
+class CheatsScreen : public Screen {
+public:
+    explicit CheatsScreen(App& app);
+    void onEnter() override;
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    void rebuild();
+    int filter_ = 0;          // 0 all, 1 installed+matching, 2 favourites, 3 recent
+    std::string query_;
+    ListView list_;
+};
+
+class CheatDetailScreen : public Screen {
+public:
+    CheatDetailScreen(App& app, std::string fileName);
+    void onEnter() override;
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    void rebuild();
+    std::string file_;
+    int category_ = -1;       // -1 = all
+    ListView list_;
+};
+
+class CheatImportScreen : public Screen {
+public:
+    explicit CheatImportScreen(App& app);
+    void onEnter() override;
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    struct Candidate { std::string path, name, problem; bool replaces = false; };
+    std::vector<Candidate> cands_;
+    std::string usb_;
+    ListView list_;
+};
+
+// ---------------------------------------------------------------- Themes
+class ThemesScreen : public Screen {
+public:
+    explicit ThemesScreen(App& app);
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    void applyTheme(const std::string& id);
+    int focus_ = 0, top_ = 0;
+};
+
+// ---------------------------------------------------------------- Info pages
+class GoldhenScreen : public Screen {
+public:
+    explicit GoldhenScreen(App& app) : Screen(app) {}
+    void onEnter() override;
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+
+private:
+    ListView plugins_;
+};
+
+class SystemScreen : public Screen {
+public:
+    explicit SystemScreen(App& app) : Screen(app) {}
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+};
+
+class NetworkScreen : public Screen {
+public:
+    explicit NetworkScreen(App& app) : Screen(app) {}
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+};
+
+class UpdateScreen : public Screen {
+public:
+    explicit UpdateScreen(App& app) : Screen(app) {}
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+};
+
+// ---------------------------------------------------------------- Files
+class FilesScreen : public Screen {
+public:
+    explicit FilesScreen(App& app) : Screen(app) {}
+    void onEnter() override;
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    void open(const std::string& dir);
+    std::string dir_;          // "" = list of roots
+    ListView list_;
+};
+
+// ---------------------------------------------------------------- Backup
+class BackupScreen : public Screen {
+public:
+    explicit BackupScreen(App& app) : Screen(app) {}
+    void onEnter() override;
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    std::string target() ;
+    void rebuild();
+    ListView list_;
+    std::vector<std::string> dirs_;   // backup dir per list row (after the 2 action rows)
+};
+
+// ---------------------------------------------------------------- Diagnostics
+class DiagScreen : public Screen {
+public:
+    explicit DiagScreen(App& app) : Screen(app) {}
+    void onEnter() override;
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    ListView list_;
 };
 
 }  // namespace henu

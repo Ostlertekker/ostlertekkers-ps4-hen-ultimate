@@ -19,7 +19,7 @@
 TITLE       := PS4 HEN ULTIMATE
 TITLE_ID    := HENU00001
 CONTENT_ID  := IV0000-HENU00001_00-PS4HENULTIMATE00
-APP_VER     := 01.00
+APP_VER     := 01.01
 CATEGORY    := gd
 
 # ---------------------------------------------------------------- toolchain
@@ -43,9 +43,7 @@ TOOLBIN := $(TOOLCHAIN)/bin/$(CDIR)
 BUILD := build/ps4
 
 # Platform-neutral code (same set as Makefile.host) + POSIX file system
-CORE_SRC := $(wildcard src/core/*.cpp src/files/*.cpp src/cheats/*.cpp src/goldhen/*.cpp \
-              src/i18n/*.cpp src/themes/*.cpp src/settings/*.cpp src/ui/*.cpp src/app/*.cpp \
-              src/gfx/*.cpp) \
+CORE_SRC := $(filter-out src/platform/%,$(wildcard src/*/*.cpp)) \
             src/platform/posix_fs.cpp
 
 # Native PS4 backend (VideoOut + ScePad)
@@ -63,7 +61,7 @@ CXXFLAGS_PS4 := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -std=gnu+
                 -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include/c++/v1 -isystem $(TOOLCHAIN)/include \
                 -Isrc -I. -Wall -Wextra -O2 -DHENU_PS4=1 -DHENU_HAS_MAIN=1
 
-LIBS := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService
+LIBS := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService -lSceNetCtl
 
 LDFLAGS := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr \
            -L$(TOOLCHAIN)/lib $(LIBS) $(TOOLCHAIN)/lib/crt1.o
@@ -111,7 +109,9 @@ sce_module/%.prx:
 
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
-	$(OO_CXX) $(CXXFLAGS_PS4) -c $< -o $@
+	$(OO_CXX) $(CXXFLAGS_PS4) -MMD -MP -c $< -o $@
+
+-include $(OBJS:.o=.d)
 
 $(ELF): $(OBJS)
 	$(OO_LD) $(OBJS) -o $@ $(LDFLAGS)

@@ -27,7 +27,7 @@ struct UiContext {
 class Screen;
 
 struct ScreenResult {
-    enum class Kind { None, Push, Pop, GoToSection, Quit } kind = Kind::None;
+    enum class Kind { None, Push, Pop, Replace, GoToSection, Quit } kind = Kind::None;
     std::unique_ptr<Screen> next;   // Push
     std::string sectionId;          // GoToSection
 
@@ -35,6 +35,10 @@ struct ScreenResult {
     static ScreenResult pop() { ScreenResult r; r.kind = Kind::Pop; return r; }
     static ScreenResult push(std::unique_ptr<Screen> s) {
         ScreenResult r; r.kind = Kind::Push; r.next = std::move(s); return r;
+    }
+    // Pops the current screen and pushes `s` (e.g. menu -> keyboard).
+    static ScreenResult replace(std::unique_ptr<Screen> s) {
+        ScreenResult r; r.kind = Kind::Replace; r.next = std::move(s); return r;
     }
     static ScreenResult goTo(const std::string& id) {
         ScreenResult r; r.kind = Kind::GoToSection; r.sectionId = id; return r;

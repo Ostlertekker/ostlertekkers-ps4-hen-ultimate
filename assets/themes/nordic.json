@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "nordic",
+  "name": {
+    "de": "Nordisch",
+    "en": "Nordic"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "minimal",
+  "mode": "dark",
+  "colors": {
+    "background": "#111820",
+    "surface": "#1f262d",
+    "surfaceAlt": "#263640",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#88c0d0",
+    "accent2": "#a3be8c",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#4c6c78",
+      "#24333c"
+    ],
+    [
+      "#546452",
+      "#24333c"
+    ],
+    [
+      "#435f6a",
+      "#24333c"
+    ],
+    [
+      "#485749",
+      "#24333c"
+    ],
+    [
+      "#39515c",
+      "#24333c"
+    ],
+    [
+      "#3d4a40",
+      "#24333c"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "none"
+  }
+}

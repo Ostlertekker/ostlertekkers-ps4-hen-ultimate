@@ -6,7 +6,7 @@
     "reportedVersion": "2.4b18.12",
     "firmwareSupport": "supported_beta",
     "supportSource": "SiSTRo Ko-fi changelogs v2.4b18.11 (13.52) / v2.4b18.12 (13.02, 13.04, 13.50)",
-    "testedOnConsole": false,
+    "testedOnConsole": true,
     "writeExceptions": [
       "/data/GoldHEN/cheats/json/",
       "/data/GoldHEN/cheats/shn/",
@@ -17,73 +17,74 @@
     {
       "id": "home",
       "order": 1,
-      "status": "unverified"
+      "status": "available"
     },
     {
       "id": "games",
       "order": 2,
-      "status": "not_implemented",
+      "status": "unverified",
       "note": "read-only; source paths need verification"
     },
     {
       "id": "cheats",
       "order": 3,
-      "status": "not_implemented",
-      "note": "file management only; in-game toggle via GoldHEN menu"
+      "status": "limited",
+      "note": "file management; in-game toggle via GoldHEN menu; no download yet"
     },
     {
       "id": "themes",
       "order": 4,
-      "status": "not_implemented"
+      "status": "unverified"
     },
     {
       "id": "goldhen",
       "order": 5,
-      "status": "not_implemented",
+      "status": "unverified",
       "note": "read-only detection"
     },
     {
       "id": "system",
       "order": 6,
-      "status": "not_implemented"
+      "status": "unverified"
     },
     {
       "id": "files",
       "order": 7,
-      "status": "not_implemented",
+      "status": "unverified",
       "note": "all writes through PathGuard"
     },
     {
       "id": "network",
       "order": 8,
-      "status": "not_implemented"
+      "status": "limited",
+      "note": "status only; no downloads yet"
     },
     {
       "id": "homebrew",
       "order": 9,
-      "status": "not_implemented",
+      "status": "unverified",
       "note": "list only"
     },
     {
       "id": "settings",
       "order": 10,
-      "status": "unverified"
+      "status": "available"
     },
     {
       "id": "backup",
       "order": 11,
-      "status": "not_implemented"
+      "status": "unverified"
     },
     {
       "id": "update",
       "order": 12,
-      "status": "not_implemented",
-      "note": "dashboard only, never GoldHEN"
+      "status": "limited",
+      "note": "manual update via GitHub Releases"
     },
     {
       "id": "diag",
       "order": 13,
-      "status": "not_implemented"
+      "status": "unverified"
     }
   ]
 }

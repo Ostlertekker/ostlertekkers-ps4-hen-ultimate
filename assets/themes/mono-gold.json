@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "mono-gold",
+  "name": {
+    "de": "Mono Gold",
+    "en": "Mono Gold"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "minimal",
+  "mode": "dark",
+  "colors": {
+    "background": "#0e0d0b",
+    "surface": "#1c1c1a",
+    "surfaceAlt": "#332b1c",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#d9b56a",
+    "accent2": "#f0dcae",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#74613a",
+      "#2e281a"
+    ],
+    [
+      "#766c56",
+      "#2e281a"
+    ],
+    [
+      "#635433",
+      "#2e281a"
+    ],
+    [
+      "#645c49",
+      "#2e281a"
+    ],
+    [
+      "#53462b",
+      "#2e281a"
+    ],
+    [
+      "#524b3c",
+      "#2e281a"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "none"
+  }
+}

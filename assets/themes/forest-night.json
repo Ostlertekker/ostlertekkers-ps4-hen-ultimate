@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "forest-night",
+  "name": {
+    "de": "Waldnacht",
+    "en": "Forest Night"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "dark",
+  "mode": "dark",
+  "colors": {
+    "background": "#08140e",
+    "surface": "#17221c",
+    "surfaceAlt": "#153321",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#4fbf7a",
+    "accent2": "#b7e36a",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#2c6a44",
+      "#132f1f"
+    ],
+    [
+      "#587338",
+      "#132f1f"
+    ],
+    [
+      "#265c3b",
+      "#132f1f"
+    ],
+    [
+      "#4a6331",
+      "#132f1f"
+    ],
+    [
+      "#204e33",
+      "#132f1f"
+    ],
+    [
+      "#3c522a",
+      "#132f1f"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "waves"
+  }
+}

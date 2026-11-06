@@ -2,16 +2,16 @@
 
 Zweisprachiges (DE/EN), PS5-inspiriertes Homebrew-Dashboard für die PS4: Spielebibliothek, Cheat Center, Theme Center, GoldHEN-Infos, Systemmonitor, Datei- und Backup-Verwaltung.
 
-## Status: v0.3.0 – erster Konsolen-Build
+## Status: v0.4.0 – alle 13 Bereiche umgesetzt
 
 | | |
 |---|---|
 | Zielsystem | FW 13.52 + GoldHEN v2.4b18.12 (Beta, vom Entwickler unterstützt) |
-| Dashboard | Startseite, 13 Bereiche mit L1/R1, Controller-Navigation, DE/EN, funktionsfähige Einstellungen |
+| Dashboard | Startseite, Meine Spiele, Cheat Center, Theme Center (24 Themes), GoldHEN-Info, System, Dateien, Netzwerk, Homebrew, Einstellungen, Backup, Update Center, Hilfe & Diagnose |
 | Grafik | eigener Software-Renderer → PS4 braucht nur die OpenOrbis-Toolchain |
-| Tests | 1215 Prüfungen grün (g++/clang++, -Werror, ASan/UBSan), Vorschau-PNGs mit dem PS4-Renderer |
+| Tests | 1455 Prüfungen grün (g++/clang++, -Werror, ASan/UBSan), Cheat-Parser gegen 4730 echte GoldHEN-Cheat-Dateien geprüft |
 | PKG | wird von GitHub Actions gebaut (`.github/workflows/build.yml`) |
-| Auf der Konsole getestet | **noch nicht** |
+| Auf der Konsole getestet | v0.3.0: Start, Navigation, Controller, Bild, Einstellungen bestätigt. Neue Bereiche aus v0.4.0: **noch nicht** |
 
 Installation per USB: `docs/INSTALLATION.md`.
 

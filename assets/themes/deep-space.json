@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "deep-space",
+  "name": {
+    "de": "Tiefer Raum",
+    "en": "Deep Space"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "ps5",
+  "mode": "dark",
+  "colors": {
+    "background": "#05070d",
+    "surface": "#14161c",
+    "surfaceAlt": "#141939",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#5b6cff",
+    "accent2": "#22d3ee",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#303a86",
+      "#131734"
+    ],
+    [
+      "#126574",
+      "#131734"
+    ],
+    [
+      "#293173",
+      "#131734"
+    ],
+    [
+      "#105562",
+      "#131734"
+    ],
+    [
+      "#22295f",
+      "#131734"
+    ],
+    [
+      "#0e4450",
+      "#131734"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "orb"
+  }
+}

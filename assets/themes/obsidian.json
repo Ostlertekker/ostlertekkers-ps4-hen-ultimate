@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "obsidian",
+  "name": {
+    "de": "Obsidian",
+    "en": "Obsidian"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "dark",
+  "mode": "dark",
+  "colors": {
+    "background": "#0a0a0c",
+    "surface": "#19191b",
+    "surfaceAlt": "#24262a",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#9aa3b5",
+    "accent2": "#d4d9e3",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#525660",
+      "#212227"
+    ],
+    [
+      "#67696f",
+      "#212227"
+    ],
+    [
+      "#464a53",
+      "#212227"
+    ],
+    [
+      "#57595e",
+      "#212227"
+    ],
+    [
+      "#3b3e45",
+      "#212227"
+    ],
+    [
+      "#47484c",
+      "#212227"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "none"
+  }
+}

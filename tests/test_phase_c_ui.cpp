@@ -151,11 +151,11 @@ static void testBundledThemes() {
     PosixFileSystem fs;
     ThemeCatalog cat;
     cat.scan(fs, "assets/themes", "");
-    CHECK(cat.themes().size() == 5);
+    CHECK(cat.themes().size() >= 20);
     CHECK(cat.errors().empty());
     for (const auto& e : cat.errors()) std::printf("  theme error %s: %s\n", e.file.c_str(), e.message.c_str());
     CHECK(cat.indexOf("midnight") >= 0 && cat.getOrFallback("nope").id == cat.themes().front().id);
-    CHECK(cat.neighbour("synthwave", 1) == cat.themes().front().id);   // wraps
+    CHECK(cat.neighbour(cat.themes().back().id, 1) == cat.themes().front().id);   // wraps
     CHECK(cat.neighbour(cat.themes().front().id, -1) == cat.themes().back().id);
 }
 
@@ -185,8 +185,9 @@ static void testAppNavigation() {
     t.press(Action::Confirm);
     CHECK(t.app->currentSection() == "themes");
 
-    // On console builds nothing claims "available" before Phase H tests
-    for (const auto& m : t.app->modules()) CHECK(m.status != CapStatus::Available);
+    // Only sections confirmed on the console may claim "available".
+    for (const auto& m : t.app->modules())
+        CHECK(m.status != CapStatus::Available || m.id == "home" || m.id == "settings");
 }
 
 static void testTranslationsComplete() {
@@ -200,7 +201,12 @@ static void testTranslationsComplete() {
         for (size_t i = 0; i < t.app->modules().size(); ++i) {
             t.app->frame(1.0f / 60);
             for (const auto& text : t.rec->texts()) {
-                bool rawKey = text.find('.') != std::string::npos && text.find(' ') == std::string::npos &&
+                auto endsWith = [&](const char* e) {
+                    const std::string x(e);
+                    return text.size() >= x.size() && text.compare(text.size() - x.size(), x.size(), x) == 0;
+                };
+                const bool fileName = endsWith(".ini") || endsWith(".json") || endsWith(".log") || endsWith(".txt");
+                bool rawKey = !fileName && text.find('.') != std::string::npos && text.find(' ') == std::string::npos &&
                               text.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/") == std::string::npos;
                 if (rawKey) std::printf("  untranslated (%s, %s): %s\n", lang, t.app->currentSection().c_str(), text.c_str());
                 CHECK(!rawKey);
@@ -212,6 +218,7 @@ static void testTranslationsComplete() {
 
 static void testSettingsPersist() {
     const std::string dir = freshDataDir("persist");
+    std::string expectedTheme;
     {
         TestApp t(dir);
         CHECK(t.app->init().isOk());
@@ -222,9 +229,10 @@ static void testSettingsPersist() {
         t.press(Action::Right);                  // language de -> en
         CHECK(t.app->settings().language == "en");
         t.press(Action::Down);
-        t.press(Action::Right);                  // theme midnight -> synthwave
-        CHECK(t.app->settings().themeId == "synthwave");
-        CHECK(t.app->theme().id == "synthwave");
+        expectedTheme = t.app->themes().neighbour("midnight", 1);
+        t.press(Action::Right);                  // theme midnight -> next
+        CHECK(t.app->settings().themeId == expectedTheme);
+        CHECK(t.app->theme().id == expectedTheme);
         t.press(Action::Down);
         t.press(Action::Down);
         t.press(Action::Right);                  // confirm button cross -> circle
@@ -234,7 +242,7 @@ static void testSettingsPersist() {
         TestApp t(dir);                           // "restart"
         CHECK(t.app->init().isOk());
         CHECK(t.app->settings().language == "en");
-        CHECK(t.app->settings().themeId == "synthwave");
+        CHECK(t.app->settings().themeId == expectedTheme);
         CHECK(t.app->settings().confirmButton == "circle");
         // reset needs two confirmations
         for (int i = 0; i < 4; ++i) t.press(Action::PrevSection);

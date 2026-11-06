@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "electric-cyan",
+  "name": {
+    "de": "Elektro Cyan",
+    "en": "Electric Cyan"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "neon",
+  "mode": "dark",
+  "colors": {
+    "background": "#03121a",
+    "surface": "#122028",
+    "surfaceAlt": "#023743",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#00e1ff",
+    "accent2": "#3dffb4",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#027a8c",
+      "#03333f"
+    ],
+    [
+      "#1e7f61",
+      "#03333f"
+    ],
+    [
+      "#02697a",
+      "#03333f"
+    ],
+    [
+      "#196c55",
+      "#03333f"
+    ],
+    [
+      "#025868",
+      "#03333f"
+    ],
+    [
+      "#145948",
+      "#03333f"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "particles"
+  }
+}

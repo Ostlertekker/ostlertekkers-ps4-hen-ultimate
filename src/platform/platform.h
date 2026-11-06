@@ -98,6 +98,34 @@ public:
     virtual Status rename(const std::string& from, const std::string& to) = 0;
     virtual Status remove(const std::string& path) = 0;
     virtual Result<SpaceInfo> space(const std::string& mountPath) = 0;
+    // Default: whole file in memory. PosixFileSystem streams instead.
+    virtual Status copyFile(const std::string& from, const std::string& to, uint64_t maxBytes = 64ull << 20) {
+        auto data = readFile(from, static_cast<size_t>(maxBytes));
+        if (!data) return Status::fail(data.error().code, data.error().message);
+        return writeFile(to, data.value());
+    }
+};
+
+// Maps console-absolute paths ("/user/app/...") below a host directory.
+// Used by desktop/preview builds; on the PS4 the prefix is empty.
+class PrefixFileSystem : public IFileSystem {
+public:
+    PrefixFileSystem(IFileSystem& inner, std::string prefix) : in_(inner), pre_(std::move(prefix)) {}
+    bool exists(const std::string& p) override { return in_.exists(pre_ + p); }
+    Result<std::vector<DirEntry>> list(const std::string& d) override { return in_.list(pre_ + d); }
+    Result<std::string> readFile(const std::string& p, size_t m) override { return in_.readFile(pre_ + p, m); }
+    Status writeFile(const std::string& p, const std::string& d) override { return in_.writeFile(pre_ + p, d); }
+    Status makeDir(const std::string& p) override { return in_.makeDir(pre_ + p); }
+    Status rename(const std::string& a, const std::string& b) override { return in_.rename(pre_ + a, pre_ + b); }
+    Status remove(const std::string& p) override { return in_.remove(pre_ + p); }
+    Result<SpaceInfo> space(const std::string& p) override { return in_.space(pre_ + p); }
+    Status copyFile(const std::string& a, const std::string& b, uint64_t m) override {
+        return in_.copyFile(pre_ + a, pre_ + b, m);
+    }
+
+private:
+    IFileSystem& in_;
+    std::string pre_;
 };
 
 // ---------------------------------------------------------------- System
@@ -110,7 +138,7 @@ struct Maybe {
 };
 
 struct SystemSnapshot {
-    Maybe<std::string> firmware;      // e.g. "13.52"
+    Maybe<std::string> firmware;      // e.g. "13.52" (as reported by the system)
     Maybe<uint64_t> uptimeSeconds;
     Maybe<std::string> runningTitleId;
     Maybe<std::string> ipAddress;
@@ -159,6 +187,7 @@ struct Platform {
 
     std::string bundleRoot;   // read-only app files (assets), e.g. "/app0"
     std::string dataRoot;     // writable app data, e.g. "/data/PS4HENULTIMATE"
+    std::string sysRoot;      // prefix for console paths ("" on PS4, demo folder on desktop)
 };
 
 // Implemented once per platform backend (platform/ps4 or platform/sdl).

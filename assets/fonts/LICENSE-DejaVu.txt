@@ -1,4 +1,4 @@
-DejaVu Sans (only the symbol glyphs ✕ ○ △ □ ◂ ▸ are taken from DejaVuSans-Bold.ttf)
+DejaVu Sans (only the symbol glyphs ✕ ○ △ □ ◂ ▸ ★ ✓ ⚠ are taken from DejaVuSans-Bold.ttf)
 
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: DejaVu fonts

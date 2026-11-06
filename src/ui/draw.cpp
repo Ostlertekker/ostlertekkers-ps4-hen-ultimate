@@ -14,6 +14,21 @@ float Fonts::sizeOf(FontId f) const {
     return 26;
 }
 
+std::string ellipsize(IRenderer& r, FontId f, const std::string& text, float maxWidth) {
+    if (r.measureText(f, text) <= maxWidth) return text;
+    const std::string dots = "\xE2\x80\xA6";
+    std::string s = text;
+    while (!s.empty()) {
+        // drop one UTF-8 code point from the end
+        size_t i = s.size() - 1;
+        while (i > 0 && (static_cast<unsigned char>(s[i]) & 0xC0) == 0x80) --i;
+        s.resize(i);
+        while (!s.empty() && s.back() == ' ') s.pop_back();
+        if (r.measureText(f, s + dots) <= maxWidth) return s + dots;
+    }
+    return dots;
+}
+
 std::vector<std::string> wrapText(IRenderer& r, FontId f, const std::string& text, float maxWidth) {
     std::vector<std::string> lines;
     size_t start = 0;

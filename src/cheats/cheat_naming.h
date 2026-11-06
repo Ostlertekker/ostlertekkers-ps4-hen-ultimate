@@ -13,8 +13,9 @@ namespace henu {
 // Title ID: 4 uppercase letters + 5 digits, e.g. "CUSA01234".
 bool isValidTitleId(const std::string& s);
 
-// Parses "CUSA01234_01.01.json" or "CUSA01234_01.01_example.elf.json".
-// Only a bare file name is accepted (no directory part).
+// Parses GoldHEN cheat file names: "{TITLEID}_{VERSION}[_{anything}].{json|shn|mc4}",
+// e.g. "CUSA01234_01.01.json", "CUSA01234_01.01_2.json",
+// "CUSA00018_01.21_default_mp.elf.json". Only a bare file name is accepted.
 Result<CheatFileId> parseCheatFileName(const std::string& fileName);
 
 // Inverse of parseCheatFileName.

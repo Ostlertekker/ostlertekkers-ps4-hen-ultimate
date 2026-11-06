@@ -10,14 +10,18 @@ Seit v0.3.0 braucht die PS4-Version **nur die OpenOrbis-Toolchain**. Gezeichnet 
 
 | # | Schnittstelle | Quelle | Stand |
 |---|---|---|---|
-| P1 | `scePadInit`, `scePadOpen(user, type, index, param)`, `scePadReadState(handle, OrbisPadData*)`, `ORBIS_PAD_BUTTON_*`, `OrbisPadData.connected` | OpenOrbis `include/orbis/Pad.h`; SDL3-PS4-Joystick-Treiber nutzt dieselben Aufrufe | 🟡 im CI gegen echte Header kompiliert, auf Konsole ungetestet |
-| P2 | `sceUserServiceInitialize`, `sceUserServiceGetInitialUser` | OpenOrbis-Header, Apollo-PS4, SDL3-PS4-Treiber | 🟡 |
-| P3 | `sceVideoOutOpen`, `sceVideoOutSetBufferAttribute`, `sceVideoOutRegisterBuffers`, `sceVideoOutSetFlipRate`, `sceVideoOutSubmitFlip`, `sceVideoOutGetFlipStatus` | OpenOrbis-Grafik-Beispiel (`samples/_common/graphics.cpp`): zwei lineare 1920×1080-Puffer im Abstand von 8.294.400 Byte | 🟡 |
-| P4 | `sceKernelAllocateDirectMemory`, `sceKernelMapDirectMemory` (Typ 3, Schutz 0x33), `sceKernelGetDirectMemorySize` | OpenOrbis `docs/MD/PS4 Libraries/Libkernel.md` + Grafik-Beispiel | 🟡 |
-| P5 | `sceSystemServiceHideSplashScreen` | in Homebrew-Projekten als notwendig dokumentiert | 🟡 |
-| P6 | `sce_module/libc.prx`, `libSceFios2.prx` aus `bin/data/modules/` ins PKG | OpenOrbis v0.5-Changelog | 🟡 |
+| P1 | `scePadInit`, `scePadOpen(user, type, index, param)`, `scePadReadState(handle, OrbisPadData*)`, `ORBIS_PAD_BUTTON_*`, `OrbisPadData.connected` | OpenOrbis `include/orbis/Pad.h`; SDL3-PS4-Joystick-Treiber nutzt dieselben Aufrufe | ✅ auf Konsole bestätigt (v0.3.0, FW 13.52) |
+| P2 | `sceUserServiceInitialize`, `sceUserServiceGetInitialUser` | OpenOrbis-Header, Apollo-PS4, SDL3-PS4-Treiber | ✅ auf Konsole bestätigt (v0.3.0) |
+| P3 | `sceVideoOutOpen`, `sceVideoOutSetBufferAttribute`, `sceVideoOutRegisterBuffers`, `sceVideoOutSetFlipRate`, `sceVideoOutSubmitFlip`, `sceVideoOutGetFlipStatus` | OpenOrbis-Grafik-Beispiel (`samples/_common/graphics.cpp`): zwei lineare 1920×1080-Puffer im Abstand von 8.294.400 Byte | ✅ auf Konsole bestätigt (v0.3.0) |
+| P4 | `sceKernelAllocateDirectMemory`, `sceKernelMapDirectMemory` (Typ 3, Schutz 0x33), `sceKernelGetDirectMemorySize` | OpenOrbis `docs/MD/PS4 Libraries/Libkernel.md` + Grafik-Beispiel | ✅ auf Konsole bestätigt (v0.3.0) |
+| P5 | `sceSystemServiceHideSplashScreen` | in Homebrew-Projekten als notwendig dokumentiert | ✅ auf Konsole bestätigt (v0.3.0) |
+| P6 | `sce_module/libc.prx`, `libSceFios2.prx` aus `bin/data/modules/` ins PKG | OpenOrbis v0.5-Changelog | ✅ auf Konsole bestätigt (v0.3.0) |
 
 Zahlenwerte (Pixelformat `0x80000000`, lineares Tiling `1`, Vsync-Flip `1`) stehen als benannte Konstanten im Code, so wie im OpenOrbis-Beispiel verwendet.
+
+| P7 | `sceNetCtlInit`, `sceNetCtlGetInfo(14, …)` (IP-Adresse) | OpenOrbis `include/orbis/NetCtl.h` | 🟡 v0.4.0, auf Konsole ungetestet; Fehler → „nicht verbunden“ |
+| P8 | `sceKernelGetSystemSwVersion` (BCD → „13.52“) | OpenOrbis `include/orbis/libkernel.h` | 🟡 v0.4.0 |
+| P9 | `sceSystemServiceParamGetInt` (Sprache = 1, Bestätigungstaste = 1000) | OpenOrbis `include/orbis/SystemService.h` | 🟡 v0.4.0; Fehler → Standardwerte |
 
 ## Desktop-Plattform (`src/platform/sdl/`, nur Entwicklung)
 
@@ -38,10 +42,12 @@ Zahlenwerte (Pixelformat `0x80000000`, lineares Tiling `1`, Vsync-Flip `1`) steh
 
 | # | Schnittstelle | Quelle | Stand |
 |---|---|---|---|
-| G1 | Cheat-Ordner `/user/data/GoldHEN/cheats/{json,shn,mc4}/`, Namensschema `{TITLEID}_{VERSION}[_{process}].{format}` | README GoldHEN_Cheat_Repository | ✅ Logik getestet (Host) · Zugriff ab Phase D |
+| G1 | Cheat-Ordner `/user/data/GoldHEN/cheats/{json,shn,mc4}/`, Namensschema `{TITLEID}_{VERSION}[_{process}].{format}` | README GoldHEN_Cheat_Repository | ✅ Parser gegen 4730 Dateien des offiziellen Repos getestet · Zugriff auf Konsole ungetestet |
 | G2 | Plugins `/data/GoldHEN/plugins`, `plugins.ini` | consolemods.org (GoldHEN-Doku) | Phase F, nur lesend |
 | G3 | `config.ini` `/data/GoldHEN/config.ini` | GoldHEN-Changelog v2.1 | Phase F, nur lesend |
 | G4 | Laufende GoldHEN-Version auslesen | – | ❌ keine dokumentierte Quelle gefunden → wird als „nicht abgefragt“ angezeigt |
+| G6 | Installierte Spiele: `/user/app/<ID>/`, Metadaten `/system_data/priv/appmeta/<ID>/param.sfo`; Version = max(APP_VER, VERSION) wie im GoldHEN Cheat Manager | GoldHEN_Cheat_Manager-Quellcode, Apollo-PS4 | 🟡 nur lesend, auf Konsole ungetestet |
+| G7 | Homebrew-Erkennung: Content-ID beginnt mit `IV` | OpenOrbis/PkgTool-Konvention | 🟡 |
 | G5 | Cheats einer laufenden Sitzung aus fremder App schalten | – | ❌ nicht belegt → nicht umgesetzt |
 
 ## Systeminformationen

@@ -133,7 +133,9 @@ Result<Platform> createPlatform() {
     p.input.reset(new SdlInput);
     p.system.reset(new NullSystemInfo);
     p.bundleRoot = envOr("HENU_BUNDLE", ".");
-    p.dataRoot = envOr("HENU_DATA", "build/host-data");
+    // Console paths ("/data/...", "/mnt/usb0") are mapped below HENU_SYSROOT.
+    p.sysRoot = envOr("HENU_SYSROOT", "build/host-root");
+    p.dataRoot = "/data/PS4HENULTIMATE";
     return R::ok(std::move(p));
 }
 

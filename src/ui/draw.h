@@ -53,6 +53,9 @@ inline float approach(float value, float target, float dt, float speed) {
     return target + (value - target) * std::exp(-speed * dt);
 }
 
+// Shortens text to fit maxWidth, appending "…" (UTF-8 safe).
+std::string ellipsize(IRenderer& r, FontId f, const std::string& text, float maxWidth);
+
 // Word wrap by measured width; keeps explicit '\n'.
 std::vector<std::string> wrapText(IRenderer& r, FontId f, const std::string& text, float maxWidth);
 

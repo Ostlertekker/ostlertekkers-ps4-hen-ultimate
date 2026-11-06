@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "graphite",
+  "name": {
+    "de": "Graphit",
+    "en": "Graphite"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "minimal",
+  "mode": "dark",
+  "colors": {
+    "background": "#121316",
+    "surface": "#202124",
+    "surfaceAlt": "#38393d",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#e6e8ec",
+    "accent2": "#8f96a3",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#7c7e81",
+      "#343538"
+    ],
+    [
+      "#4c4f57",
+      "#343538"
+    ],
+    [
+      "#6b6c70",
+      "#343538"
+    ],
+    [
+      "#42454c",
+      "#343538"
+    ],
+    [
+      "#5a5b5f",
+      "#343538"
+    ],
+    [
+      "#383a40",
+      "#343538"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "none"
+  }
+}

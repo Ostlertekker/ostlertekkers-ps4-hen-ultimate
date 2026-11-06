@@ -8,6 +8,7 @@
 //   OpenOrbis samples/_common/graphics.cpp (VideoOut setup, linear buffers
 //   placed width*height*4 bytes apart, direct memory type 3 / prot 0x33)
 // Only compiled by the PS4 build (`make`), never on the host.
+#include <orbis/NetCtl.h>
 #include <orbis/Pad.h>
 #include <orbis/SystemService.h>
 #include <orbis/UserService.h>
@@ -146,18 +147,43 @@ private:
 
 class Ps4SystemInfo : public ISystemInfo {
 public:
+    Ps4SystemInfo() { netOk_ = sceNetCtlInit() >= 0; }
+
     SystemSnapshot snapshot() override {
         SystemSnapshot s;
-        const char* why = "not queried (Phase F)";
-        s.firmware.why = why;
-        s.uptimeSeconds.why = why;
-        s.runningTitleId.why = why;
-        s.ipAddress.why = why;
-        s.networkUp.why = why;
-        s.language.why = why;
-        s.circleIsConfirm.why = why;
+        // Firmware: OrbisKernelSwVersion.Version is BCD, e.g. 0x13520001 -> "13.52"
+        OrbisKernelSwVersion v;
+        std::memset(&v, 0, sizeof(v));
+        v.Size = sizeof(v);
+        if (sceKernelGetSystemSwVersion(&v) == 0 && v.Version != 0) {
+            char buf[16];
+            std::snprintf(buf, sizeof(buf), "%x.%02x", (v.Version >> 24) & 0xFF, (v.Version >> 16) & 0xFF);
+            s.firmware = {true, buf, ""};
+        } else {
+            s.firmware.why = "sceKernelGetSystemSwVersion failed";
+        }
+        int32_t lang = -1;
+        if (sceSystemServiceParamGetInt(ORBIS_SYSTEM_SERVICE_PARAM_ID_LANG, &lang) == 0) {
+            // PS4 language ids: 1 = English (US), 4 = German, 18 = English (UK) ...
+            s.language = {true, lang == 4 ? "de" : (lang == 1 || lang == 18 ? "en" : "id " + std::to_string(lang)), ""};
+        }
+        int32_t enter = -1;
+        if (sceSystemServiceParamGetInt(ORBIS_SYSTEM_SERVICE_PARAM_ID_ENTER_BUTTON_ASSIGN, &enter) == 0)
+            s.circleIsConfirm = {true, enter == 0, ""};   // 0 = circle, 1 = cross
+        if (netOk_) {
+            OrbisNetCtlInfo info;
+            std::memset(&info, 0, sizeof(info));
+            if (sceNetCtlGetInfo(ORBIS_NET_CTL_INFO_IP_ADDRESS, &info) == 0 && info.ip_address[0]) {
+                s.ipAddress = {true, std::string(info.ip_address), ""};
+                s.networkUp = {true, std::string(info.ip_address) != "0.0.0.0", ""};
+            }
+        }
+        if (!s.ipAddress.known) s.ipAddress.why = "not connected";
         return s;
     }
+
+private:
+    bool netOk_ = false;
 };
 
 Ps4Display g_display;
@@ -180,6 +206,7 @@ Result<Platform> createPlatform() {
     p.system.reset(new Ps4SystemInfo);
     p.bundleRoot = "/app0";
     p.dataRoot = "/data/PS4HENULTIMATE";
+    p.sysRoot = "";
     return R::ok(std::move(p));
 }
 

@@ -7,7 +7,11 @@
 #include <string>
 #include <vector>
 
+#include "app/favorites.h"
+#include "cheats/cheat_db.h"
 #include "core/capability.h"
+#include "files/path_guard.h"
+#include "games/game_library.h"
 #include "core/log.h"
 #include "i18n/i18n.h"
 #include "platform/platform.h"
@@ -29,6 +33,8 @@ struct ModuleDef {
 struct AppOptions {
     bool onConsole = false;   // true on PS4: implemented features count as "unverified" until tested
 };
+
+constexpr const char* kAppVersion = "0.4.0";
 
 class App {
 public:
@@ -63,6 +69,24 @@ public:
     const std::string& dataRoot() const { return platform_.dataRoot; }
     void toast(const std::string& text);
 
+    // ---- console data (paths are console-absolute, e.g. "/user/app")
+    IFileSystem& sysFs() { return sysFs_ ? *sysFs_ : *platform_.fs; }
+    const PathGuard& guard() const { return *guard_; }
+    GameLibrary& games() { return games_; }
+    CheatDatabase& cheats() { return cheats_; }
+    Favorites& favorites() { return favs_; }
+    ThemeCatalog& themeCatalog() { return themes_; }
+    SystemSnapshot systemInfo();
+    std::string cheatRoot() const { return "/data/GoldHEN/cheats"; }
+    // Scans installed titles and cheat files (once, or again with force).
+    void ensureScanned(bool force = false);
+    void rescanThemes();
+    void reloadUserData();   // after a restore: settings + favourites from disk
+    // Hand-over between sections (e.g. "show cheats for CUSA00001").
+    void setCheatQuery(const std::string& q) { cheatQuery_ = q; }
+    std::string takeCheatQuery() { std::string q = cheatQuery_; cheatQuery_.clear(); return q; }
+    bool goToSectionById(const std::string& id);
+
     // True if the last frame() actually rendered (false = idle, nothing changed).
     bool lastFrameDrawn() const { return drawn_; }
 
@@ -84,6 +108,12 @@ private:
 
     Platform& platform_;
     AppOptions opts_;
+    std::unique_ptr<IFileSystem> sysFs_;
+    std::unique_ptr<PathGuard> guard_;
+    GameLibrary games_;
+    CheatDatabase cheats_;
+    Favorites favs_;
+    std::string cheatQuery_;
     Logger log_;
     I18n i18n_;
     ThemeCatalog themes_;

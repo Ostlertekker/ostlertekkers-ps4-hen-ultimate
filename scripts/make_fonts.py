@@ -37,7 +37,7 @@ FACES = [
 ]
 
 TEXT_CHARS = [chr(c) for c in range(32, 127)] + [chr(c) for c in range(160, 256)] + list("–—·•…‹›←→€„“”‚‘’")
-SYMBOLS = list("✕○△□◂▸")          # PS button glyphs + arrows, from DejaVu Sans
+SYMBOLS = list("✕○△□◂▸★✓⚠")       # PS button glyphs, arrows, star, check, warning (DejaVu Sans)
 KERN_CHARS = [chr(c) for c in range(32, 127)] + list("ÄÖÜäöüß")
 
 

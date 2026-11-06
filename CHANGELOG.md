@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.4.0 – alle Bereiche (2026-11-06), PKG-Version 01.01
+
+### Hinzugefügt
+- **Meine Spiele / Homebrew**: liest installierte Titel aus `/user/app` + `param.sfo` (Name, Title ID, Version, Region), Cheat-Anzahl je Spiel, ✕ springt ins Cheat Center
+- **Cheat Center**: liest GoldHEN-Cheats (JSON, SHN inkl. UTF-16; MC4 nur gezählt), Suche nach Name/Title ID/Region, Filter (alle/passend/Favoriten/zuletzt), Versionsprüfung gegen installierte Version, Kategorien, Favoriten, Import von USB (mit Sicherung ersetzter Dateien), Export auf USB, Warnungen bei unpassender/unbekannter Version
+- **Theme Center**: Raster mit 24 Themes, Sofortwechsel, Favorit, Zufall, Import/Export
+- **GoldHEN-Info** (nur lesend): Datenordner, benötigter Build für die FW, Cheat-/Patch-Zählung, config.ini, plugins.ini mit Prüfung, ob die Plugin-Dateien existieren
+- **System**: Firmware, Sprache, Bestätigungstaste, Laufzeit, Speicher intern/USB, Zähler, IP
+- **Dateien**: Browser für Dashboard-Daten, GoldHEN-Ordner und USB; Kopieren auf USB, Löschen nur in erlaubten Ordnern mit Bestätigung
+- **Netzwerk**: Verbindungsstatus/IP, Hinweis auf GoldHEN-FTP (Port 2121)
+- **Backup**: Sicherungen (Dashboard-Daten, optional GoldHEN-Cheats) intern oder auf USB, SHA-256-Prüfung, Wiederherstellen mit Sicherheitskopie
+- **Update Center**: Version, manueller Weg über GitHub Releases, Backup vor dem Update
+- **Hilfe & Diagnose**: Status aller Bereiche, Protokoll, Export auf USB
+- Bildschirmtastatur, Aktionsmenüs (OPTIONS), Bestätigungsdialoge
+- Erster Start übernimmt Systemsprache und Bestätigungstaste der PS4
+
+### Geändert
+- Listenzeilen ohne Untertitel werden vertikal zentriert
+
 ## v0.3.0 – PKG-Build (2026-11-06), PKG-Version 01.00
 
 ### Hinzugefügt

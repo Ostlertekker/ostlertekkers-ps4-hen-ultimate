@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "ocean-strike",
+  "name": {
+    "de": "Ozean",
+    "en": "Ocean Strike"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "gaming",
+  "mode": "dark",
+  "colors": {
+    "background": "#04121c",
+    "surface": "#13202a",
+    "surfaceAlt": "#092c45",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#1fa3ff",
+    "accent2": "#29ffd0",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#125a8e",
+      "#082940"
+    ],
+    [
+      "#157f6f",
+      "#082940"
+    ],
+    [
+      "#0f4f7b",
+      "#082940"
+    ],
+    [
+      "#126c60",
+      "#082940"
+    ],
+    [
+      "#0d4369",
+      "#082940"
+    ],
+    [
+      "#0f5952",
+      "#082940"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "waves"
+  }
+}

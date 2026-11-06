@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "starlight",
+  "name": {
+    "de": "Sternenlicht",
+    "en": "Starlight"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "ps5",
+  "mode": "dark",
+  "colors": {
+    "background": "#0b0d18",
+    "surface": "#1a1c26",
+    "surfaceAlt": "#2d3042",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#c9d2ff",
+    "accent2": "#7c8cff",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#6a708c",
+      "#292d3d"
+    ],
+    [
+      "#3f4782",
+      "#292d3d"
+    ],
+    [
+      "#5b6079",
+      "#292d3d"
+    ],
+    [
+      "#363d70",
+      "#292d3d"
+    ],
+    [
+      "#4c5067",
+      "#292d3d"
+    ],
+    [
+      "#2d335d",
+      "#292d3d"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "particles"
+  }
+}

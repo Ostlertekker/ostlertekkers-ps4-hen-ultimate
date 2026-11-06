@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "cloud",
+  "name": {
+    "de": "Wolke",
+    "en": "Cloud"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "light",
+  "mode": "light",
+  "colors": {
+    "background": "#eef1f7",
+    "surface": "#ffffff",
+    "surfaceAlt": "#e6e8ff",
+    "text": "#141824",
+    "textMuted": "#5a6274",
+    "accent": "#4b5bff",
+    "accent2": "#00a3c4",
+    "focus": "#3844bf",
+    "line": "#0000001f",
+    "ok": "#2fae73",
+    "warn": "#c98a16",
+    "error": "#d23c4f"
+  },
+  "tileGradients": [
+    [
+      "#c9ceff",
+      "#edefff"
+    ],
+    [
+      "#bae6ef",
+      "#edefff"
+    ],
+    [
+      "#d4d8ff",
+      "#edefff"
+    ],
+    [
+      "#c9ecf3",
+      "#edefff"
+    ],
+    [
+      "#dfe1ff",
+      "#edefff"
+    ],
+    [
+      "#d9f1f6",
+      "#edefff"
+    ]
+  ],
+  "surfaceOpacity": 1.0,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "none"
+  }
+}

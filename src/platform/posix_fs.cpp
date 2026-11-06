@@ -128,4 +128,44 @@ Result<SpaceInfo> PosixFileSystem::space(const std::string& mountPath) {
     return Result<SpaceInfo>::ok(s);
 }
 
+Status PosixFileSystem::copyFile(const std::string& from, const std::string& to, uint64_t maxBytes) {
+    int in = ::open(from.c_str(), O_RDONLY);
+    if (in < 0) return Status::fail(errCode(), errText("open " + from));
+    int out = ::open(to.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    if (out < 0) {
+        ::close(in);
+        return Status::fail(errCode(), errText("open " + to));
+    }
+    static char buf[1 << 20];
+    uint64_t total = 0;
+    Status result = Status::ok();
+    while (true) {
+        ssize_t n = ::read(in, buf, sizeof(buf));
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            result = Status::fail(ErrorCode::IoError, errText("read " + from));
+            break;
+        }
+        if (n == 0) break;
+        total += static_cast<uint64_t>(n);
+        if (total > maxBytes) { result = Status::fail(ErrorCode::IoError, "file larger than limit: " + from); break; }
+        ssize_t off = 0;
+        while (off < n) {
+            ssize_t w = ::write(out, buf + off, static_cast<size_t>(n - off));
+            if (w < 0) {
+                if (errno == EINTR) continue;
+                result = Status::fail(ErrorCode::IoError, errText("write " + to));
+                break;
+            }
+            off += w;
+        }
+        if (!result) break;
+    }
+    ::close(in);
+    if (::fsync(out) != 0 && result) result = Status::fail(ErrorCode::IoError, errText("fsync " + to));
+    ::close(out);
+    if (!result) ::unlink(to.c_str());
+    return result;
+}
+
 }  // namespace henu

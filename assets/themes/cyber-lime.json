@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "cyber-lime",
+  "name": {
+    "de": "Cyber Limette",
+    "en": "Cyber Lime"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "neon",
+  "mode": "dark",
+  "colors": {
+    "background": "#0b1209",
+    "surface": "#1a2018",
+    "surfaceAlt": "#2a3d12",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#b6ff3c",
+    "accent2": "#00e5a8",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#608822",
+      "#263811"
+    ],
+    [
+      "#067352",
+      "#263811"
+    ],
+    [
+      "#53761e",
+      "#263811"
+    ],
+    [
+      "#076245",
+      "#263811"
+    ],
+    [
+      "#45631a",
+      "#263811"
+    ],
+    [
+      "#085139",
+      "#263811"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "particles"
+  }
+}

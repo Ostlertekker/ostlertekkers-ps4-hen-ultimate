@@ -6,6 +6,7 @@
 
 #include "app/screens.h"
 #include "core/json.h"
+#include "files/fs_util.h"
 
 namespace henu {
 
@@ -30,11 +31,13 @@ size_t App::stackDepth() const { return stacks_[section_].size(); }
 Status App::init() {
     if (!platform_.renderer || !platform_.input || !platform_.fs)
         return Status::fail(ErrorCode::InvalidArgument, "platform incomplete");
-    IFileSystem& fs = *platform_.fs;
+    if (!platform_.sysRoot.empty()) sysFs_.reset(new PrefixFileSystem(*platform_.fs, platform_.sysRoot));
+    guard_.reset(new PathGuard(platform_.dataRoot));
+    IFileSystem& fs = sysFs();
 
-    // App data folder + log file
+    // App data folder + log file (console path, below sysRoot on desktop)
     if (!platform_.dataRoot.empty()) {
-        fs.makeDir(platform_.dataRoot);
+        makeDirsUnchecked(fs, platform_.dataRoot);
         const std::string logDir = platform_.dataRoot + "/logs";
         if (fs.makeDir(logDir)) log_.attachFile(&fs, logDir);
     }
@@ -47,8 +50,20 @@ Status App::init() {
     std::string source;
     settings_ = store_->load(&source);
     log_.info("settings loaded from " + source);
+    if (source == "defaults" && platform_.system) {
+        // First start: follow the console's language and confirm button.
+        SystemSnapshot snap = platform_.system->snapshot();
+        if (snap.language.known) settings_.language = snap.language.value == "de" ? "de" : "en";
+        if (snap.circleIsConfirm.known) settings_.confirmButton = snap.circleIsConfirm.value ? "circle" : "cross";
+    }
+    favs_.load(fs, platform_.dataRoot);
 
-    themes_.scan(fs, platform_.bundleRoot + "/assets/themes", platform_.dataRoot + "/themes");
+    themes_.scan(*platform_.fs, platform_.bundleRoot + "/assets/themes", "");
+    if (!platform_.dataRoot.empty()) {
+        ThemeCatalog user;   // user themes live in the console data folder
+        user.scan(fs, "", platform_.dataRoot + "/themes");
+        for (const auto& t : user.themes()) if (themes_.indexOf(t.id) < 0) themes_.addTheme(t);
+    }
     for (const auto& e : themes_.errors()) log_.warn("theme " + e.file + ": " + e.message);
     log_.info(std::to_string(themes_.themes().size()) + " themes loaded");
 
@@ -85,8 +100,7 @@ void App::loadModules() {
         if (d.id.empty()) continue;
         CapStatus st;
         if (!parseCapStatus(m.get("status").asString(), st)) st = CapStatus::NotImplemented;
-        // "available" may only be claimed after console tests (Phase H).
-        if (opts_.onConsole && st == CapStatus::Available) st = CapStatus::Unverified;
+        // "available" in features.json means: confirmed on the console.
         d.status = st;
         modules_.push_back(d);
     }
@@ -170,7 +184,59 @@ Screen& App::top() { return *stacks_[section_].back(); }
 std::unique_ptr<Screen> App::makeRoot(const std::string& id) {
     if (id == "home") return std::unique_ptr<Screen>(new HomeScreen(*this));
     if (id == "settings") return std::unique_ptr<Screen>(new SettingsScreen(*this));
+    if (id == "games") return std::unique_ptr<Screen>(new GamesScreen(*this, false));
+    if (id == "homebrew") return std::unique_ptr<Screen>(new GamesScreen(*this, true));
+    if (id == "cheats") return std::unique_ptr<Screen>(new CheatsScreen(*this));
+    if (id == "themes") return std::unique_ptr<Screen>(new ThemesScreen(*this));
+    if (id == "goldhen") return std::unique_ptr<Screen>(new GoldhenScreen(*this));
+    if (id == "system") return std::unique_ptr<Screen>(new SystemScreen(*this));
+    if (id == "network") return std::unique_ptr<Screen>(new NetworkScreen(*this));
+    if (id == "files") return std::unique_ptr<Screen>(new FilesScreen(*this));
+    if (id == "backup") return std::unique_ptr<Screen>(new BackupScreen(*this));
+    if (id == "update") return std::unique_ptr<Screen>(new UpdateScreen(*this));
+    if (id == "diag") return std::unique_ptr<Screen>(new DiagScreen(*this));
     return std::unique_ptr<Screen>(new ModuleScreen(*this, id));
+}
+
+SystemSnapshot App::systemInfo() {
+    return platform_.system ? platform_.system->snapshot() : SystemSnapshot();
+}
+
+void App::ensureScanned(bool force) {
+    if (force || !games_.scanned()) {
+        Status st = games_.scan(sysFs());
+        log_.info("games: " + std::to_string(games_.all().size()) + (st ? "" : " (" + st.error().message + ")"));
+    }
+    if (force || !cheats_.scanned()) {
+        cheats_.scan(sysFs(), cheatRoot());
+        log_.info("cheat files: " + std::to_string(cheats_.files().size()) + ", errors: " +
+                  std::to_string(cheats_.errors().size()));
+    }
+}
+
+void App::rescanThemes() {
+    themes_.scan(*platform_.fs, platform_.bundleRoot + "/assets/themes", "");
+    ThemeCatalog user;
+    user.scan(sysFs(), "", platform_.dataRoot + "/themes");
+    for (const auto& t : user.themes()) if (themes_.indexOf(t.id) < 0) themes_.addTheme(t);
+    for (const auto& e : user.errors()) log_.warn("theme " + e.file + ": " + e.message);
+    applyTheme();
+    dirty_ = true;
+}
+
+void App::reloadUserData() {
+    settings_ = store_->load();
+    favs_.load(sysFs(), platform_.dataRoot);
+    i18n_.setLanguage(settings_.language);
+    rescanThemes();
+    applyInput();
+    dirty_ = true;
+}
+
+bool App::goToSectionById(const std::string& id) {
+    for (size_t i = 0; i < modules_.size(); ++i)
+        if (modules_[i].id == id) { goToSection(i); return true; }
+    return false;
 }
 
 void App::goToSection(size_t index) {
@@ -197,6 +263,11 @@ void App::handle(const InputEvent& ev) {
             stacks_[section_].push_back(std::move(r.next));
             top().onEnter();
             break;
+        case ScreenResult::Kind::Replace:
+            if (stacks_[section_].size() > 1) stacks_[section_].pop_back();
+            stacks_[section_].push_back(std::move(r.next));
+            top().onEnter();
+            break;
         case ScreenResult::Kind::Pop:
             if (stacks_[section_].size() > 1) {
                 stacks_[section_].pop_back();
@@ -206,8 +277,7 @@ void App::handle(const InputEvent& ev) {
             }
             break;
         case ScreenResult::Kind::GoToSection:
-            for (size_t i = 0; i < n; ++i)
-                if (modules_[i].id == r.sectionId) { goToSection(i); break; }
+            goToSectionById(r.sectionId);
             break;
         case ScreenResult::Kind::Quit:
             quit_ = true;
@@ -297,13 +367,13 @@ void App::drawChrome(const UiContext& ctx) {
     const bool swapped = settings_.confirmButton == "circle";
     for (const auto& h : top().hints()) {
         std::string glyph = h.first;
-        if (glyph == "@confirm") glyph = swapped ? "O" : "X";
+        if (glyph == "@confirm") glyph = swapped ? "\xE2\x97\x8B" : "\xE2\x9C\x95";   // ○ / ✕
         x += drawButtonHint(r, f, th, glyph, t(h.second), x, y);
     }
     if (stacks_[section_].size() > 1 || section_ != 0)
-        x += drawButtonHint(r, f, th, swapped ? "X" : "O", t("hint.back"), x, y);
+        x += drawButtonHint(r, f, th, swapped ? "\xE2\x9C\x95" : "\xE2\x97\x8B", t("hint.back"), x, y);
     drawButtonHint(r, f, th, "L1", t("hint.section"), x, y);
-    r.drawText(f.small, "v0.3.0-phaseC", kScreenW - kMarginX, y + 5, withAlpha(th.textMuted, 0.7f), TextAlign::Right);
+    r.drawText(f.small, std::string("v") + kAppVersion, kScreenW - kMarginX, y + 5, withAlpha(th.textMuted, 0.7f), TextAlign::Right);
 
     // ---- toast
     if (time_ < toastUntil_ && !toastText_.empty()) {

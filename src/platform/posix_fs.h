@@ -18,6 +18,7 @@ public:
     Status rename(const std::string& from, const std::string& to) override;
     Status remove(const std::string& path) override;
     Result<SpaceInfo> space(const std::string& mountPath) override;
+    Status copyFile(const std::string& from, const std::string& to, uint64_t maxBytes) override;
 };
 
 }  // namespace henu

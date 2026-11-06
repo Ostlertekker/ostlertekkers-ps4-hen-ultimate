@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <string>
 
-#include "app/services.h"
 #include "cheats/cheat_naming.h"
 #include "core/capability.h"
 #include "core/version.h"
@@ -111,11 +110,14 @@ static void testCheatNaming() {
     auto r = parseCheatFileName("CUSA01234_01.01.json");
     CHECK(r.isOk());
     CHECK(r.value().titleId == "CUSA01234" && r.value().version.toString() == "01.01");
-    CHECK(r.value().process.empty() && r.value().format == CheatFormat::Json);
+    CHECK(r.value().variant.empty() && r.value().format == CheatFormat::Json);
     CHECK(makeCheatFileName(r.value()) == "CUSA01234_01.01.json");
 
     auto p = parseCheatFileName("CUSA01234_01.01_example.elf.shn");
-    CHECK(p.isOk() && p.value().process == "example.elf" && p.value().format == CheatFormat::Shn);
+    CHECK(p.isOk() && p.value().variant == "example.elf" && p.value().format == CheatFormat::Shn);
+    // real-world names from the GoldHEN repository
+    CHECK(parseCheatFileName("CUSA00004_01.07_2.json").value().variant == "2");
+    CHECK(parseCheatFileName("CUSA00018_01.21_default_mp.elf_2.json").value().variant == "default_mp.elf_2");
     CHECK(makeCheatFileName(p.value()) == "CUSA01234_01.01_example.elf.shn");
 
     CHECK(parseCheatFileName("CUSA01234_01.01.MC4").isOk());

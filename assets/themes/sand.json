@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "sand",
+  "name": {
+    "de": "Sand",
+    "en": "Sand"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "light",
+  "mode": "light",
+  "colors": {
+    "background": "#f4efe6",
+    "surface": "#ffffff",
+    "surfaceAlt": "#f5e9df",
+    "text": "#141824",
+    "textMuted": "#5a6274",
+    "accent": "#b5651d",
+    "accent2": "#2f7d6d",
+    "focus": "#884c16",
+    "line": "#0000001f",
+    "ok": "#2fae73",
+    "warn": "#c98a16",
+    "error": "#d23c4f"
+  },
+  "tileGradients": [
+    [
+      "#e9d1bb",
+      "#f8f0e8"
+    ],
+    [
+      "#c7dcd8",
+      "#f8f0e8"
+    ],
+    [
+      "#eddac9",
+      "#f8f0e8"
+    ],
+    [
+      "#d3e4e0",
+      "#f8f0e8"
+    ],
+    [
+      "#f2e3d6",
+      "#f8f0e8"
+    ],
+    [
+      "#e0ece9",
+      "#f8f0e8"
+    ]
+  ],
+  "surfaceOpacity": 1.0,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "none"
+  }
+}

@@ -26,22 +26,28 @@ const char* toString(CheatCategory c);
 struct CheatFileId {
     std::string titleId;      // e.g. "CUSA01234"
     AppVersion version;       // e.g. 01.01
-    std::string process;      // empty = eboot.bin
+    std::string variant;      // text after "_" following the version, e.g. "2" or "default_mp.elf"
     CheatFormat format = CheatFormat::Json;
 };
 
 struct CheatEntry {
     std::string name;
     std::string description;
+    std::string type;          // json: "checkbox" | "button"
     CheatCategory category = CheatCategory::Other;
 };
 
 struct CheatFile {
     CheatFileId id;
-    std::string path;          // absolute path on console
-    std::string gameName;      // from file, if present
+    std::string fileName;
+    std::string path;          // absolute console path
+    std::string gameName;      // from file content
+    std::string process;       // from file content (json "process", shn Process)
+    std::string contentTitleId, contentVersion;   // as written inside the file
     std::vector<std::string> credits;
     std::vector<CheatEntry> cheats;
+    bool readable = false;     // false for encrypted MC4 or broken files
+    std::string note;          // why not readable / warnings
 };
 
 enum class Compatibility {

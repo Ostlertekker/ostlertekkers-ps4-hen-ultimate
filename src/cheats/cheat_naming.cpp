@@ -78,15 +78,15 @@ Result<CheatFileId> parseCheatFileName(const std::string& fileName) {
 
     if (stem.size() > 15) {
         if (stem[15] != '_') return R::fail(ErrorCode::ParseError, "unexpected text after version");
-        id.process = stem.substr(16);
-        if (id.process.empty()) return R::fail(ErrorCode::ParseError, "empty process name");
+        id.variant = stem.substr(16);
+        if (id.variant.empty()) return R::fail(ErrorCode::ParseError, "empty suffix");
     }
     return R::ok(id);
 }
 
 std::string makeCheatFileName(const CheatFileId& id) {
     std::string s = id.titleId + "_" + id.version.toString();
-    if (!id.process.empty()) s += "_" + id.process;
+    if (!id.variant.empty()) s += "_" + id.variant;
     s += ".";
     s += toString(id.format);
     return s;

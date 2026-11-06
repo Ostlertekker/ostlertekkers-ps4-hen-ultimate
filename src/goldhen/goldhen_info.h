@@ -1,6 +1,11 @@
 // PS4 HEN ULTIMATE - goldhen/goldhen_info.h
-// READ-ONLY view of the externally running GoldHEN. This module never writes,
+// READ-ONLY view of GoldHEN's data folder. This module never writes,
 // patches, updates or replaces anything belonging to GoldHEN.
+// Known layout (GoldHEN docs / GoldHEN_Cheat_Manager include/cheats.h):
+//   /data/GoldHEN/cheats/{json,shn,mc4}   cheat files
+//   /data/GoldHEN/patches/                game patches
+//   /data/GoldHEN/plugins/  + /data/GoldHEN/plugins.ini
+//   /data/GoldHEN/config.ini
 #pragma once
 
 #include <string>
@@ -17,34 +22,29 @@ enum class FirmwareSupport {
 };
 
 struct GoldhenPlugin {
-    std::string path;      // as listed in plugins.ini
-    std::string section;   // "[default]" or title id
+    std::string section;   // "default" or a title id
+    std::string path;
     bool fileExists = false;
 };
 
-struct GoldhenInfo {
-    Maybe<bool> present;                // GoldHEN data folder found
-    Maybe<std::string> version;         // e.g. "2.4b18.12" - only if reliably readable
-    Maybe<std::string> firmware;        // from ISystemInfo, never derived from GoldHEN
-    FirmwareSupport support = FirmwareSupport::Unknown;
-    Maybe<int> cheatFileCount;          // files in cheats/{json,shn,mc4}
-    Maybe<std::vector<GoldhenPlugin>> plugins;
-    std::vector<std::string> notes;     // warnings shown to the user
+struct GoldhenStatus {
+    bool folderFound = false;
+    bool configFound = false;
+    bool pluginsIniFound = false;
+    size_t cheatsJson = 0, cheatsShn = 0, cheatsMc4 = 0;
+    size_t patchFiles = 0;
+    std::vector<GoldhenPlugin> plugins;
 };
 
-class GoldhenDetector {
-public:
-    GoldhenDetector(IFileSystem& fs, ISystemInfo& sys) : fs_(fs), sys_(sys) {}
-    // Phase F: detection sources are documented in docs/API_NACHWEIS.md
-    // before use. Until then, unknown values stay unknown.
-    GoldhenInfo detect();
+GoldhenStatus detectGoldhen(IFileSystem& fs, const std::string& root = "/data/GoldHEN");
 
-private:
-    IFileSystem& fs_;
-    ISystemInfo& sys_;
-};
+// plugins.ini: "[default]" / "[CUSA00001]" sections, one .prx path per line, ';' comments.
+std::vector<GoldhenPlugin> parsePluginsIni(const std::string& text);
 
 // Known-support table (docs/KOMPATIBILITAET.md). Pure function, testable.
 FirmwareSupport lookupSupport(const std::string& goldhenVersion, const std::string& firmware);
+
+// Lowest GoldHEN build documented to support this firmware, "" if none known.
+std::string minimumGoldhenFor(const std::string& firmware);
 
 }  // namespace henu

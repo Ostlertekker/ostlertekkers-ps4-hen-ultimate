@@ -51,4 +51,11 @@ Kachel im Startbildschirm → OPTIONS → Löschen. Die Einstellungen bleiben in
 
 ## Status
 
-Diese Version (01.00 / v0.3.0) ist der **erste Konsolen-Test**. Sie wurde nie zuvor auf einer PS4 gestartet. Funktionsfähig sind Startseite, Navigation, Sprache und Einstellungen; alle anderen Bereiche zeigen ehrlich „Noch nicht umgesetzt“.
+Diese Version (01.01 / v0.4.0) enthält alle 13 Bereiche. Auf der Konsole bestätigt sind bisher Start, Navigation, Controller, Bildausgabe und Einstellungen (v0.3.0). Die neuen Bereiche (Spiele, Cheats, Themes, GoldHEN-Info, System, Dateien, Netzwerk, Backup, Diagnose) sind am PC mit nachgebauten Konsolen-Ordnern getestet, aber **noch nicht auf einer echten PS4**.
+
+Eingeschränkt (ehrlich gekennzeichnet in der App):
+- Cheats werden verwaltet (anzeigen, suchen, Favoriten, Import/Export von USB); **ein- und ausgeschaltet werden sie im Spiel über das GoldHEN-Menü**.
+- Keine Downloads aus dem Internet; Updates manuell über GitHub Releases.
+- `.mc4`-Dateien sind verschlüsselt und werden nur gezählt, nicht gelesen.
+
+Update von 01.00: einfach das neue PKG installieren. Falls die PS4 die Installation ablehnt, alte App löschen (Einstellungen bleiben in `/data/PS4HENULTIMATE/`).
