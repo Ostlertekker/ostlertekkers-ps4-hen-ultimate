@@ -31,6 +31,8 @@ jobs:
     name: PS4 PKG (OpenOrbis v0.5.4)
     runs-on: ubuntu-24.04
     needs: test
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -87,3 +89,14 @@ jobs:
             *.pkg
             SHA256SUMS.txt
             docs/INSTALLATION.md
+
+      - name: Publish as pre-release (download from the Releases page)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="build-${{ github.run_number }}"
+          gh release create "$TAG" *.pkg SHA256SUMS.txt docs/INSTALLATION.md \
+            --target "${{ github.sha }}" --prerelease \
+            --title "PS4 HEN ULTIMATE v0.3.0 – Build ${{ github.run_number }} (Konsolentest)" \
+            --notes "Automatisch gebaut aus ${{ github.sha }} mit OpenOrbis v0.5.4. Noch NICHT auf der Konsole getestet. Installation: INSTALLATION.md (USB-Stick, exFAT, PKG ins Hauptverzeichnis, Debug-Einstellungen -> Paket-Installationsprogramm)."
