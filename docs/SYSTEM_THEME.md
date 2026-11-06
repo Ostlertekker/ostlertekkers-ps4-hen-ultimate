@@ -38,9 +38,13 @@ Alle Bilder werden von `tools/theme/make_theme.cpp` mit dem App-Renderer erzeugt
   Konsole und einem Sony-Retail-Theme geprüft (mit Sonys Werkzeugen gebaut).
 - Pakettyp `pkg_ps4_theme` und `IROTag.SS_THEME = 2`: LibOrbisPkg
   `LibOrbisPkg/GP4/Gp4Project.cs`, `LibOrbisPkg/PKG/Enums.cs`.
-- **Änderung an LibOrbisPkg** (`scripts/patch_liborbispkg_theme.py`): Upstream schreibt
-  in den PKG-Kopf immer `iro_tag = None`. Für Theme-Pakete wird dort jetzt
-  `SS_THEME` eingetragen. Das ist die einzige Änderung.
+- **Zwei Änderungen an LibOrbisPkg** (`scripts/patch_liborbispkg_theme.py`):
+  1. Upstream schreibt in den PKG-Kopf immer `iro_tag = None`. Für Theme-Pakete wird
+     dort jetzt `SS_THEME` eingetragen.
+  2. Upstream lässt im Projekt-Validator nur App- und Zusatzinhalt-Pakete zu, obwohl
+     der Builder Themes wie Zusatzinhalt behandelt. Der Theme-Typ wird freigegeben.
+     Damit nutzt das Theme einen Weg, den auch die PkgTool-Entwickler nicht
+     freigegeben haben – deshalb ausdrücklich experimentell.
 - Nicht dauerhaft nach Neustart: ConsoleMods-Wiki „PS4:Custom Themes“.
 
 ## Installation
