@@ -57,10 +57,11 @@ ELF  := $(BUILD)/henu.elf
 OELF := $(BUILD)/henu.oelf
 
 # ---------------------------------------------------------------- flags
-COMMON := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables \
-          -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include \
-          -Isrc -I. -Wall -Wextra -O2 -DHENU_PS4=1 -DHENU_HAS_MAIN=1
-CXXFLAGS_PS4 := $(COMMON) -std=gnu++17 -isystem $(TOOLCHAIN)/include/c++/v1
+# libc++ headers must come before the C headers (otherwise <cmath> as first
+# include misses ::abs etc.). gnu++17 keeps musl's POSIX declarations visible.
+CXXFLAGS_PS4 := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables -std=gnu++17 \
+                -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include/c++/v1 -isystem $(TOOLCHAIN)/include \
+                -Isrc -I. -Wall -Wextra -O2 -DHENU_PS4=1 -DHENU_HAS_MAIN=1
 
 LIBS := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService
 
@@ -72,9 +73,12 @@ LDFLAGS := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr \
 # between releases (bin/data/modules, samples/*/sce_module), so search for them.
 PRX_DIR := $(patsubst %/,%,$(dir $(firstword $(shell find "$(TOOLCHAIN)" -name libc.prx 2>/dev/null))))
 SCE_MODULES := $(if $(PRX_DIR),$(foreach m,libc libSceFios2,$(if $(wildcard $(PRX_DIR)/$(m).prx),sce_module/$(m).prx)))
+# right.sprx (by IDC) is part of every OpenOrbis sample package (sce_sys/about/).
+RIGHT_SPRX_SRC := $(firstword $(shell find "$(TOOLCHAIN)/samples" -path '*sce_sys/about/right.sprx' 2>/dev/null))
+RIGHT_SPRX := $(if $(RIGHT_SPRX_SRC),sce_sys/about/right.sprx)
 
 # Files packed into the PKG (relative to project root, = /app0 on the console)
-PKG_FILES := eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png $(SCE_MODULES) \
+PKG_FILES := eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png $(RIGHT_SPRX) $(SCE_MODULES) \
              $(wildcard assets/lang/*.json) $(wildcard assets/themes/*.json) \
              $(wildcard assets/fonts/*.hfnt) assets/fonts/OFL-Inter.txt assets/fonts/LICENSE-DejaVu.txt \
              config/features.json
@@ -128,7 +132,11 @@ sce_sys/param.sfo: Makefile
 	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ TITLE_ID   --type Utf8    --maxsize 12  --value '$(TITLE_ID)'
 	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ VERSION    --type Utf8    --maxsize 8   --value '$(APP_VER)'
 
-pkg.gp4: eboot.bin sce_sys/param.sfo $(SCE_MODULES)
+sce_sys/about/right.sprx:
+	@mkdir -p sce_sys/about
+	cp "$(RIGHT_SPRX_SRC)" $@
+
+pkg.gp4: eboot.bin sce_sys/param.sfo $(RIGHT_SPRX) $(SCE_MODULES)
 	$(TOOLBIN)/create-gp4 -out $@ --content-id=$(CONTENT_ID) --files "$(PKG_FILES)"
 
 $(PKG): pkg.gp4
@@ -136,4 +144,4 @@ $(PKG): pkg.gp4
 	@echo "PKG erstellt: $(PKG)  (noch NICHT auf der Konsole getestet)"
 
 clean:
-	rm -rf $(BUILD) eboot.bin sce_sys/param.sfo pkg.gp4 *.pkg sce_module
+	rm -rf $(BUILD) eboot.bin sce_sys/param.sfo sce_sys/about pkg.gp4 *.pkg sce_module

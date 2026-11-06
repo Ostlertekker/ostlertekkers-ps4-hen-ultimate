@@ -6,3 +6,4 @@ pkg.gp4
 .DS_Store
 sce_module/
 SHA256SUMS.txt
+sce_sys/about/
