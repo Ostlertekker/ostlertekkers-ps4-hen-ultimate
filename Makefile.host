@@ -1,0 +1,67 @@
+# PS4 HEN ULTIMATE - host build (PC). Builds the platform-neutral core and
+# runs unit tests. Needs only a C++17 compiler (clang++ or g++).
+#
+#   make -f Makefile.host test
+#   make -f Makefile.host clean
+
+CXX      ?= clang++
+CXXFLAGS ?= -std=c++17 -O1 -g -Wall -Wextra -Wpedantic -Werror -Isrc -I.
+BUILD    := build/host
+
+# Platform-neutral code (everything except platform/sdl, platform/ps4, platform/host)
+CORE_SRC := $(wildcard src/core/*.cpp src/files/*.cpp src/cheats/*.cpp src/goldhen/*.cpp \
+              src/i18n/*.cpp src/themes/*.cpp src/settings/*.cpp src/ui/*.cpp src/app/*.cpp \
+              src/gfx/*.cpp) \
+            src/platform/posix_fs.cpp
+
+TEST_SRC := $(wildcard tests/*.cpp)
+
+OBJS := $(patsubst %.cpp,$(BUILD)/%.o,$(CORE_SRC) $(TEST_SRC))
+
+PREVIEW_SRC := tools/preview/preview_main.cpp
+PREVIEW_OBJS := $(patsubst %.cpp,$(BUILD)/%.o,$(CORE_SRC) $(PREVIEW_SRC))
+TEST_OBJS_EXTRA :=
+
+# Desktop app with SDL2 (macOS: brew install sdl2 pkg-config). Shows exactly the
+# pixels of the PS4 build (same software renderer).
+SDL_CFLAGS = $(shell pkg-config --cflags sdl2 2>/dev/null)
+SDL_LIBS   = $(shell pkg-config --libs sdl2 2>/dev/null)
+APP_OBJS := $(patsubst %.cpp,$(BUILD)/%.o,$(filter-out src/app/main.cpp,$(CORE_SRC))) \
+            $(BUILD)/desktop/main.o $(BUILD)/desktop/sdl_platform.o
+
+.PHONY: test clean preview app
+test: $(BUILD)/run_tests
+	./$(BUILD)/run_tests
+
+$(BUILD)/run_tests: $(OBJS) $(TEST_OBJS_EXTRA)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+# UI preview: runs the real App with the PS4 software renderer, writes PNGs.
+preview: $(BUILD)/preview
+	rm -rf build/preview build/preview-data && mkdir -p build/preview build/preview-data
+	./$(BUILD)/preview . build/preview-data build/preview
+
+$(BUILD)/preview: $(PREVIEW_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+app: $(BUILD)/henu-desktop
+	@echo "Start: ./$(BUILD)/henu-desktop  (Tastatur: Pfeile, Enter=X, Esc=O, Q=L1, E=R1)"
+
+$(BUILD)/henu-desktop: $(APP_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(SDL_LIBS)
+
+$(BUILD)/desktop/sdl_platform.o: src/platform/sdl/sdl_platform.cpp
+	@pkg-config --exists sdl2 || { echo "FEHLER: SDL2 + pkg-config nötig (brew install sdl2 pkg-config)"; exit 1; }
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -c $< -o $@
+
+$(BUILD)/desktop/main.o: src/app/main.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -DHENU_HAS_MAIN=1 -c $< -o $@
+
+$(BUILD)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(BUILD)

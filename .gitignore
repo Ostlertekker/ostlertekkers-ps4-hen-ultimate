@@ -1,0 +1,8 @@
+build/
+eboot.bin
+sce_sys/param.sfo
+pkg.gp4
+*.pkg
+.DS_Store
+sce_module/
+SHA256SUMS.txt

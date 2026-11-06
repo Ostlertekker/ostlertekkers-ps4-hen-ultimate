@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ps4henultimate/theme/1",
+  "title": "PS4 HEN ULTIMATE Theme",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "category", "mode", "colors"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{1,31}$" },
+    "name": {
+      "type": "object",
+      "properties": { "de": { "type": "string" }, "en": { "type": "string" } },
+      "required": ["en"]
+    },
+    "author": { "type": "string" },
+    "license": { "type": "string" },
+    "category": { "enum": ["ps5", "dark", "neon", "minimal", "gaming", "light", "custom"] },
+    "mode": { "enum": ["dark", "light"] },
+    "colors": {
+      "type": "object",
+      "required": ["background", "surface", "surfaceAlt", "text", "textMuted", "accent", "accent2", "focus", "line"],
+      "additionalProperties": false,
+      "patternProperties": {
+        "^.*$": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$" }
+      },
+      "properties": {
+        "background": {}, "surface": {}, "surfaceAlt": {}, "text": {}, "textMuted": {},
+        "accent": {}, "accent2": {}, "focus": {}, "line": {},
+        "ok": {}, "warn": {}, "error": {}
+      }
+    },
+    "tileGradients": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "array", "minItems": 2, "maxItems": 2,
+        "items": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+      }
+    },
+    "surfaceOpacity": { "type": "number", "minimum": 0.2, "maximum": 1.0 },
+    "cornerRadius": { "type": "integer", "minimum": 0, "maximum": 48 },
+    "background": {
+      "type": "object",
+      "properties": {
+        "type": { "enum": ["solid", "gradient", "image"] },
+        "image": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.png$" },
+        "dim": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "animation": {
+      "type": "object",
+      "properties": {
+        "speed": { "type": "number", "minimum": 0.25, "maximum": 2.0 },
+        "focusScale": { "type": "number", "minimum": 1.0, "maximum": 1.15 },
+        "ambient": { "enum": ["none", "orb", "particles", "waves"] }
+      }
+    },
+    "sounds": {
+      "type": "object",
+      "properties": {
+        "move": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.wav$" },
+        "select": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.wav$" },
+        "back": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+\\.wav$" }
+      }
+    }
+  }
+}

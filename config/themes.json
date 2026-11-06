@@ -1,0 +1,47 @@
+[
+  {
+    "id": "midnight",
+    "name": "Midnight",
+    "palette": [
+      "#080b14",
+      "#8b7cff"
+    ],
+    "included": true
+  },
+  {
+    "id": "aurora",
+    "name": "Aurora",
+    "palette": [
+      "#071a20",
+      "#48c9ad"
+    ],
+    "included": true
+  },
+  {
+    "id": "crimson",
+    "name": "Crimson",
+    "palette": [
+      "#170b12",
+      "#d85b78"
+    ],
+    "included": true
+  },
+  {
+    "id": "arctic",
+    "name": "Arctic",
+    "palette": [
+      "#0b1727",
+      "#73c9ff"
+    ],
+    "included": false
+  },
+  {
+    "id": "synthwave",
+    "name": "Synthwave",
+    "palette": [
+      "#1b1035",
+      "#ff69c8"
+    ],
+    "included": false
+  }
+]

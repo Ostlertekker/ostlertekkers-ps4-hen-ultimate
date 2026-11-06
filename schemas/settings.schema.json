@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ps4henultimate/settings/1",
+  "title": "PS4 HEN ULTIMATE Settings",
+  "type": "object",
+  "required": ["schemaVersion"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "language": { "enum": ["de", "en"], "default": "de" },
+    "themeId": { "type": "string", "default": "midnight" },
+    "favoriteThemes": { "type": "array", "items": { "type": "string" } },
+    "randomTheme": { "enum": ["off", "on_start", "daily"], "default": "off" },
+    "modeOverride": { "enum": ["theme", "dark", "light"], "default": "theme" },
+    "tileSize": { "enum": ["small", "medium", "large"], "default": "medium" },
+    "animations": { "enum": ["full", "reduced", "off"], "default": "full" },
+    "sound": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "volume": { "type": "integer", "minimum": 0, "maximum": 100, "default": 70 }
+      }
+    },
+    "controller": {
+      "type": "object",
+      "properties": {
+        "confirmButton": { "enum": ["cross", "circle"], "default": "cross" },
+        "stickDeadzone": { "type": "number", "minimum": 0.05, "maximum": 0.6, "default": 0.25 },
+        "repeatDelayMs": { "type": "integer", "minimum": 150, "maximum": 800, "default": 350 },
+        "repeatRateMs": { "type": "integer", "minimum": 40, "maximum": 300, "default": 90 }
+      }
+    },
+    "network": {
+      "type": "object",
+      "properties": {
+        "allowDownloads": { "type": "boolean", "default": false }
+      }
+    },
+    "cheatDb": {
+      "type": "object",
+      "properties": {
+        "source": { "enum": ["none", "official_goldhen_repo", "usb_zip"], "default": "none" },
+        "lastUpdate": { "type": ["string", "null"], "default": null }
+      }
+    },
+    "update": {
+      "type": "object",
+      "properties": {
+        "checkOnStart": { "type": "boolean", "default": false },
+        "channel": { "enum": ["stable", "beta"], "default": "stable" }
+      }
+    },
+    "backup": {
+      "type": "object",
+      "properties": {
+        "target": { "enum": ["internal", "usb"], "default": "internal" },
+        "keep": { "type": "integer", "minimum": 1, "maximum": 20, "default": 5 }
+      }
+    }
+  }
+}

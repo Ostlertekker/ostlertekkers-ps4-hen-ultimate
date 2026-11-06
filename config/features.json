@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "targetFirmware": "13.52",
+  "goldhen": {
+    "policy": "external-read-only",
+    "reportedVersion": "2.4b18.12",
+    "firmwareSupport": "supported_beta",
+    "supportSource": "SiSTRo Ko-fi changelogs v2.4b18.11 (13.52) / v2.4b18.12 (13.02, 13.04, 13.50)",
+    "testedOnConsole": false,
+    "writeExceptions": [
+      "/data/GoldHEN/cheats/json/",
+      "/data/GoldHEN/cheats/shn/",
+      "/data/GoldHEN/cheats/mc4/"
+    ]
+  },
+  "modules": [
+    {
+      "id": "home",
+      "order": 1,
+      "status": "unverified"
+    },
+    {
+      "id": "games",
+      "order": 2,
+      "status": "not_implemented",
+      "note": "read-only; source paths need verification"
+    },
+    {
+      "id": "cheats",
+      "order": 3,
+      "status": "not_implemented",
+      "note": "file management only; in-game toggle via GoldHEN menu"
+    },
+    {
+      "id": "themes",
+      "order": 4,
+      "status": "not_implemented"
+    },
+    {
+      "id": "goldhen",
+      "order": 5,
+      "status": "not_implemented",
+      "note": "read-only detection"
+    },
+    {
+      "id": "system",
+      "order": 6,
+      "status": "not_implemented"
+    },
+    {
+      "id": "files",
+      "order": 7,
+      "status": "not_implemented",
+      "note": "all writes through PathGuard"
+    },
+    {
+      "id": "network",
+      "order": 8,
+      "status": "not_implemented"
+    },
+    {
+      "id": "homebrew",
+      "order": 9,
+      "status": "not_implemented",
+      "note": "list only"
+    },
+    {
+      "id": "settings",
+      "order": 10,
+      "status": "unverified"
+    },
+    {
+      "id": "backup",
+      "order": 11,
+      "status": "not_implemented"
+    },
+    {
+      "id": "update",
+      "order": 12,
+      "status": "not_implemented",
+      "note": "dashboard only, never GoldHEN"
+    },
+    {
+      "id": "diag",
+      "order": 13,
+      "status": "not_implemented"
+    }
+  ]
+}

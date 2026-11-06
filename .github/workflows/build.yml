@@ -1,0 +1,81 @@
+# PS4 HEN ULTIMATE - CI: host tests + UI preview + real PS4 PKG build.
+# The PKG is uploaded as artifact "PS4_HEN_ULTIMATE-pkg" (Actions tab -> run -> Artifacts).
+name: Build PS4 PKG
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Host tests + UI preview
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit tests (g++, -Werror)
+        run: make -f Makefile.host test
+      - name: Unit tests (AddressSanitizer + UBSan)
+        run: |
+          make -f Makefile.host clean
+          make -f Makefile.host CXX=g++ CXXFLAGS="-std=c++17 -O1 -g -Wall -Wextra -Wpedantic -Werror -Isrc -I. -fsanitize=address,undefined -fno-omit-frame-pointer" test
+      - name: UI preview (same renderer as PS4)
+        run: |
+          make -f Makefile.host clean
+          make -f Makefile.host CXXFLAGS="-std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -Isrc -I." preview
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-preview
+          path: build/preview/*.png
+
+  ps4:
+    name: PS4 PKG (OpenOrbis v0.5.4)
+    runs-on: ubuntu-24.04
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install LLVM 18
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-18 lld-18
+          clang++-18 --version
+
+      - name: Install .NET 8 (for PkgTool.Core)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Download OpenOrbis PS4 Toolchain v0.5.4
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.5.4 -R OpenOrbis/OpenOrbis-PS4-Toolchain -p 'toolchain-llvm-18.tar.gz' -D /tmp
+          sha256sum /tmp/toolchain-llvm-18.tar.gz
+          sudo mkdir -p /opt/oo && sudo chown "$USER" /opt/oo
+          tar -xzf /tmp/toolchain-llvm-18.tar.gz -C /opt/oo
+          TC="$(dirname "$(find /opt/oo -name link.x -print -quit)")"
+          test -n "$TC" || { echo "link.x not found in toolchain archive"; find /opt/oo -maxdepth 3; exit 1; }
+          chmod +x "$TC"/bin/linux/* || true
+          echo "OO_PS4_TOOLCHAIN=$TC" >> "$GITHUB_ENV"
+          echo "Toolchain: $TC"
+          ls "$TC" "$TC/bin/linux" "$TC/bin/data/modules" || true
+
+      - name: Check build environment
+        run: make check OO_CXX=clang++-18 OO_LD=ld.lld-18
+
+      - name: Build eboot.bin, param.sfo, PKG
+        run: make OO_CXX=clang++-18 OO_LD=ld.lld-18
+
+      - name: Checksums
+        run: |
+          ls -la *.pkg eboot.bin
+          sha256sum *.pkg eboot.bin > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PS4_HEN_ULTIMATE-pkg
+          path: |
+            *.pkg
+            SHA256SUMS.txt
+            docs/INSTALLATION.md

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "midnight",
+  "name": {
+    "de": "Mitternacht",
+    "en": "Midnight"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "ps5",
+  "mode": "dark",
+  "colors": {
+    "background": "#080b14",
+    "surface": "#171a22",
+    "surfaceAlt": "#201f3e",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#8b7cff",
+    "accent2": "#42b7ef",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#493b91",
+      "#26234d"
+    ],
+    [
+      "#1c5c83",
+      "#182a49"
+    ],
+    [
+      "#813c78",
+      "#3d244e"
+    ],
+    [
+      "#236d69",
+      "#183b43"
+    ],
+    [
+      "#80602e",
+      "#40331f"
+    ],
+    [
+      "#454d65",
+      "#252d40"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "orb"
+  }
+}

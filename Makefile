@@ -1,0 +1,137 @@
+# PS4 HEN ULTIMATE - PS4 build with the OpenOrbis PS4 Toolchain
+#
+# Requirements (see docs/BUILD.md):
+#   - OpenOrbis PS4 Toolchain (v0.5.4 tested in CI), env var OO_PS4_TOOLCHAIN
+#   - clang/clang++/ld.lld (LLVM 18 recommended for toolchain-llvm-18)
+#   - .NET runtime for PkgTool.Core
+# Nothing else: graphics are drawn by our own software renderer and shown
+# through VideoOut, input comes from ScePad (OpenOrbis headers/stubs).
+#
+# Targets:
+#   make            -> eboot.bin + sce_sys/param.sfo + pkg
+#   make check      -> only verifies the build environment
+#   make clean
+#
+# Compiler/linker flags and tool calls follow the OpenOrbis v0.5 samples.
+# Override compilers with e.g.:  make OO_CXX=clang++-18 OO_LD=ld.lld-18
+
+# ---------------------------------------------------------------- identity
+TITLE       := PS4 HEN ULTIMATE
+TITLE_ID    := HENU00001
+CONTENT_ID  := IV0000-HENU00001_00-PS4HENULTIMATE00
+APP_VER     := 01.00
+CATEGORY    := gd
+
+# ---------------------------------------------------------------- toolchain
+TOOLCHAIN := $(OO_PS4_TOOLCHAIN)
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+  CDIR := macos
+  LLVM_BIN ?= $(shell brew --prefix llvm 2>/dev/null)/bin
+  OO_CXX ?= $(LLVM_BIN)/clang++
+  OO_LD  ?= $(LLVM_BIN)/ld.lld
+else
+  CDIR := linux
+  OO_CXX ?= clang++
+  OO_LD  ?= ld.lld
+endif
+
+TOOLBIN := $(TOOLCHAIN)/bin/$(CDIR)
+
+# ---------------------------------------------------------------- sources
+BUILD := build/ps4
+
+# Platform-neutral code (same set as Makefile.host) + POSIX file system
+CORE_SRC := $(wildcard src/core/*.cpp src/files/*.cpp src/cheats/*.cpp src/goldhen/*.cpp \
+              src/i18n/*.cpp src/themes/*.cpp src/settings/*.cpp src/ui/*.cpp src/app/*.cpp \
+              src/gfx/*.cpp) \
+            src/platform/posix_fs.cpp
+
+# Native PS4 backend (VideoOut + ScePad)
+PS4_SRC := $(wildcard src/platform/ps4/*.cpp)
+
+SRC  := $(CORE_SRC) $(PS4_SRC)
+OBJS := $(patsubst %.cpp,$(BUILD)/%.o,$(SRC))
+ELF  := $(BUILD)/henu.elf
+OELF := $(BUILD)/henu.oelf
+
+# ---------------------------------------------------------------- flags
+COMMON := --target=x86_64-pc-freebsd12-elf -fPIC -funwind-tables \
+          -isysroot $(TOOLCHAIN) -isystem $(TOOLCHAIN)/include \
+          -Isrc -I. -Wall -Wextra -O2 -DHENU_PS4=1 -DHENU_HAS_MAIN=1
+CXXFLAGS_PS4 := $(COMMON) -std=c++17 -isystem $(TOOLCHAIN)/include/c++/v1
+
+LIBS := -lc -lkernel -lc++ -lSceVideoOut -lScePad -lSceUserService -lSceSystemService
+
+LDFLAGS := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr \
+           -L$(TOOLCHAIN)/lib $(LIBS) $(TOOLCHAIN)/lib/crt1.o
+
+# Stub system modules shipped with the toolchain; they belong in sce_module/
+# of every homebrew package (OpenOrbis v0.5 changelog).
+SCE_MODULES := sce_module/libc.prx sce_module/libSceFios2.prx
+
+# Files packed into the PKG (relative to project root, = /app0 on the console)
+PKG_FILES := eboot.bin sce_sys/param.sfo sce_sys/icon0.png sce_sys/pic1.png $(SCE_MODULES) \
+             $(wildcard assets/lang/*.json) $(wildcard assets/themes/*.json) \
+             $(wildcard assets/fonts/*.hfnt) assets/fonts/OFL-Inter.txt assets/fonts/LICENSE-DejaVu.txt \
+             config/features.json
+
+PKG := $(CONTENT_ID).pkg
+
+# ---------------------------------------------------------------- rules
+.PHONY: all check clean
+
+all: check $(PKG)
+
+check:
+	@test -n "$(TOOLCHAIN)" || { echo "FEHLER: OO_PS4_TOOLCHAIN ist nicht gesetzt (siehe docs/BUILD.md)."; exit 1; }
+	@test -f "$(TOOLCHAIN)/link.x" || { echo "FEHLER: $(TOOLCHAIN)/link.x fehlt - Toolchain unvollständig."; exit 1; }
+	@test -f "$(TOOLCHAIN)/lib/crt1.o" || { echo "FEHLER: $(TOOLCHAIN)/lib/crt1.o fehlt."; exit 1; }
+	@test -f "$(TOOLCHAIN)/include/orbis/VideoOut.h" || { echo "FEHLER: OpenOrbis-Header fehlen."; exit 1; }
+	@test -x "$(TOOLBIN)/create-fself" || { echo "FEHLER: $(TOOLBIN)/create-fself fehlt oder ist nicht ausführbar."; exit 1; }
+	@test -x "$(TOOLBIN)/create-gp4" || { echo "FEHLER: $(TOOLBIN)/create-gp4 fehlt oder ist nicht ausführbar."; exit 1; }
+	@test -e "$(TOOLBIN)/PkgTool.Core" || { echo "FEHLER: $(TOOLBIN)/PkgTool.Core fehlt."; exit 1; }
+	@command -v $(OO_CXX) >/dev/null 2>&1 || { echo "FEHLER: Compiler $(OO_CXX) nicht gefunden."; exit 1; }
+	@command -v $(OO_LD) >/dev/null 2>&1 || { echo "FEHLER: Linker $(OO_LD) nicht gefunden."; exit 1; }
+	@test -f "$(TOOLCHAIN)/bin/data/modules/libc.prx" || { echo "FEHLER: $(TOOLCHAIN)/bin/data/modules/libc.prx fehlt."; exit 1; }
+	@test -f sce_sys/icon0.png || { echo "FEHLER: sce_sys/icon0.png fehlt (python3 scripts/make_icons.py)."; exit 1; }
+	@test -n "$(wildcard assets/fonts/*.hfnt)" || { echo "FEHLER: Schrift-Atlanten fehlen (python3 scripts/make_fonts.py)."; exit 1; }
+	@echo "Build-Umgebung OK: $(TOOLCHAIN)"
+
+sce_module/%.prx:
+	@mkdir -p sce_module
+	cp "$(TOOLCHAIN)/bin/data/modules/$*.prx" $@
+
+$(BUILD)/%.o: %.cpp
+	@mkdir -p $(dir $@)
+	$(OO_CXX) $(CXXFLAGS_PS4) -c $< -o $@
+
+$(ELF): $(OBJS)
+	$(OO_LD) $(OBJS) -o $@ $(LDFLAGS)
+
+eboot.bin: $(ELF)
+	$(TOOLBIN)/create-fself -in=$(ELF) -out=$(OELF) --eboot "eboot.bin" --paid 0x3800000000000011
+
+sce_sys/param.sfo: Makefile
+	$(TOOLBIN)/PkgTool.Core sfo_new $@
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ APP_TYPE   --type Integer --maxsize 4   --value 1
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ APP_VER    --type Utf8    --maxsize 8   --value '$(APP_VER)'
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ ATTRIBUTE  --type Integer --maxsize 4   --value 0
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ CATEGORY   --type Utf8    --maxsize 4   --value '$(CATEGORY)'
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ CONTENT_ID --type Utf8    --maxsize 48  --value '$(CONTENT_ID)'
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ DOWNLOAD_DATA_SIZE --type Integer --maxsize 4 --value 0
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ SYSTEM_VER --type Integer --maxsize 4   --value 0
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ TITLE      --type Utf8    --maxsize 128 --value '$(TITLE)'
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ TITLE_ID   --type Utf8    --maxsize 12  --value '$(TITLE_ID)'
+	$(TOOLBIN)/PkgTool.Core sfo_setentry $@ VERSION    --type Utf8    --maxsize 8   --value '$(APP_VER)'
+
+pkg.gp4: eboot.bin sce_sys/param.sfo $(SCE_MODULES)
+	$(TOOLBIN)/create-gp4 -out $@ --content-id=$(CONTENT_ID) --files "$(PKG_FILES)"
+
+$(PKG): pkg.gp4
+	$(TOOLBIN)/PkgTool.Core pkg_build pkg.gp4 .
+	@echo "PKG erstellt: $(PKG)  (noch NICHT auf der Konsole getestet)"
+
+clean:
+	rm -rf $(BUILD) eboot.bin sce_sys/param.sfo pkg.gp4 *.pkg sce_module

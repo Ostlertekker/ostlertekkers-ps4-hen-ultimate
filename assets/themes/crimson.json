@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "crimson",
+  "name": {
+    "de": "Karmesin",
+    "en": "Crimson"
+  },
+  "author": "PS4 HEN ULTIMATE",
+  "license": "GPL-3.0-or-later",
+  "category": "gaming",
+  "mode": "dark",
+  "colors": {
+    "background": "#170b12",
+    "surface": "#251a20",
+    "surfaceAlt": "#3a1924",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#d85b78",
+    "accent2": "#f2a65a",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#783345",
+      "#361822"
+    ],
+    [
+      "#7c5233",
+      "#361822"
+    ],
+    [
+      "#682d3d",
+      "#361822"
+    ],
+    [
+      "#6a462d",
+      "#361822"
+    ],
+    [
+      "#592635",
+      "#361822"
+    ],
+    [
+      "#593a28",
+      "#361822"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "orb"
+  }
+}

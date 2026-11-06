@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PS4 HEN ULTIMATE</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand"><div class="brandmark">H</div><div><b>HEN ULTIMATE</b><small>HOME · CONTROL CENTER</small></div></div>
+    <div class="topmeta"><span class="pill"><i></i><span data-i18n="offline">Offline preview</span></span><button id="lang" class="lang">DE / EN</button></div>
+  </header>
+  <main>
+    <section class="welcome"><div><p class="eyebrow" data-i18n="welcome">DEIN GAMING HUB</p><h1 data-i18n="headline">Alles an einem Ort.</h1><p class="sub" data-i18n="sub">Deine PS4. Dein Stil. Deine Kontrolle.</p></div><div class="version"><span data-i18n="target">ZIELSYSTEM</span><b>PS4 · FW 13.52</b><small>GoldHEN integration: not queried</small></div></section>
+    <section class="hero card" id="hero"><div class="hero-copy"><span class="tag" data-i18n="featured">VORGESTELLT</span><h2 data-i18n="heroTitle">Dein Dashboard.<br>Deine Regeln.</h2><p data-i18n="heroText">Ein aufgeräumter Mittelpunkt für Themes, Homebrew und Systeminfos.</p><button class="primary" data-go="themes" data-i18n="explore">Themes entdecken</button></div><div class="orb"></div></section>
+    <section class="section-head"><div><p class="eyebrow" data-i18n="quick">SCHNELLZUGRIFF</p><h2 data-i18n="modules">Deine Bereiche</h2></div><span class="hint" data-i18n="select">Wähle eine Kachel</span></section>
+    <section class="tiles">
+      <button class="tile tile-large violet" data-go="games"><span class="tile-icon">▣</span><span class="tile-title" data-i18n="games">Spiele</span><small data-i18n="gamesDesc">Sammlung & Favoriten</small><b class="tile-arrow">↗</b></button>
+      <button class="tile blue" data-go="goldhen"><span class="tile-icon">ϟ</span><span class="tile-title">GoldHEN</span><small data-i18n="goldDesc">Status & Informationen</small><b class="tile-arrow">↗</b></button>
+      <button class="tile pink" data-go="themes"><span class="tile-icon">◈</span><span class="tile-title" data-i18n="themes">Themes</span><small data-i18n="themesDesc">Farben & Hintergründe</small><b class="tile-arrow">↗</b></button>
+      <button class="tile green" data-go="system"><span class="tile-icon">⌘</span><span class="tile-title" data-i18n="system">System</span><small data-i18n="systemDesc">Geräteinformationen</small><b class="tile-arrow">↗</b></button>
+      <button class="tile amber" data-go="files"><span class="tile-icon">▤</span><span class="tile-title" data-i18n="files">Dateien</span><small data-i18n="filesDesc">Lokale Inhalte</small><b class="tile-arrow">↗</b></button>
+      <button class="tile slate" data-go="settings"><span class="tile-icon">⚙</span><span class="tile-title" data-i18n="settings">Einstellungen</span><small data-i18n="settingsDesc">Sprache & Profile</small><b class="tile-arrow">↗</b></button>
+    </section>
+    <section class="lower">
+      <div class="panel"><div class="panel-head"><h3 data-i18n="status">Systemstatus</h3><span class="mini-badge" data-i18n="mock">VORSCHAU</span></div><div class="statusrow"><span data-i18n="firmware">Firmware-Ziel</span><b>13.52</b></div><div class="statusrow"><span>GoldHEN</span><b class="muted" data-i18n="notQueried">Nicht abgefragt</b></div><div class="statusrow"><span data-i18n="compat">Kompatibilität</span><b class="muted" data-i18n="pending">Prüfung ausstehend</b></div></div>
+      <div class="panel theme-panel"><div class="panel-head"><h3 data-i18n="appearance">Erscheinungsbild</h3><button class="textbtn" data-go="themes" data-i18n="allThemes">Alle Themes →</button></div><div class="swatches"><button class="swatch s1" data-theme="midnight"><span>Midnight</span></button><button class="swatch s2" data-theme="aurora"><span>Aurora</span></button><button class="swatch s3" data-theme="crimson"><span>Crimson</span></button></div></div>
+    </section>
+    <footer><span>PS4 HEN ULTIMATE <span class="muted">· UI CONCEPT 1.0</span></span><span data-i18n="footer">Eigenständige Oberfläche · GoldHEN bleibt separat</span></footer>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+<script src="app.js"></script>
+</body></html>
