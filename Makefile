@@ -138,7 +138,7 @@ sce_sys/about/right.sprx:
 
 pkg.gp4: eboot.bin sce_sys/param.sfo $(RIGHT_SPRX) $(SCE_MODULES)
 	$(TOOLBIN)/create-gp4 -out $@ --content-id=$(CONTENT_ID) --files "$(PKG_FILES)"
-	@echo "--- pkg.gp4:"; cat $@
+	python3 scripts/fix_gp4.py $@
 
 $(PKG): pkg.gp4
 	$(TOOLBIN)/PkgTool.Core pkg_build pkg.gp4 .
