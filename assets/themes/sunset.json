@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "sunset",
+  "name": {
+    "de": "Sonnenuntergang",
+    "en": "Sunset"
+  },
+  "author": "OSTLERTEKKERS HEN",
+  "license": "GPL-3.0-or-later",
+  "category": "ps5",
+  "mode": "dark",
+  "colors": {
+    "background": "#180a14",
+    "surface": "#261922",
+    "surfaceAlt": "#421b2d",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#ff6b9d",
+    "accent2": "#ffab5e",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#8c3a58",
+      "#3d1a2a"
+    ],
+    [
+      "#825436",
+      "#3d1a2a"
+    ],
+    [
+      "#79334e",
+      "#3d1a2a"
+    ],
+    [
+      "#704730",
+      "#3d1a2a"
+    ],
+    [
+      "#672b43",
+      "#3d1a2a"
+    ],
+    [
+      "#5d3a2a",
+      "#3d1a2a"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "waves"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "vaporwave",
+  "name": {
+    "de": "Vaporwave",
+    "en": "Vaporwave"
+  },
+  "author": "OSTLERTEKKERS HEN",
+  "license": "GPL-3.0-or-later",
+  "category": "neon",
+  "mode": "dark",
+  "colors": {
+    "background": "#1a0f2e",
+    "surface": "#281d3b",
+    "surfaceAlt": "#43214b",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#ff71ce",
+    "accent2": "#01cdfe",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#8c407e",
+      "#3f1f48"
+    ],
+    [
+      "#0e668e",
+      "#3f1f48"
+    ],
+    [
+      "#7a3871",
+      "#3f1f48"
+    ],
+    [
+      "#10577d",
+      "#3f1f48"
+    ],
+    [
+      "#683064",
+      "#3f1f48"
+    ],
+    [
+      "#12486c",
+      "#3f1f48"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "particles"
+  }
+}

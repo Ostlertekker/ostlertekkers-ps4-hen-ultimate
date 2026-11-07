@@ -84,6 +84,7 @@ Settings settingsFromJson(const Json& j, std::vector<std::string>* w) {
     s.repeatRateMs = pickInt(c, "repeatRateMs", 40, 300, d.repeatRateMs, w);
 
     s.allowDownloads = pickBool(j.get("network"), "allowDownloads", d.allowDownloads, w);
+    s.allowUnverifiedTls = pickBool(j.get("network"), "allowUnverifiedTls", d.allowUnverifiedTls, w);
     s.cheatDbSource = pickEnum(j.get("cheatDb"), "source", {"none", "official_goldhen_repo", "usb_zip"},
                                d.cheatDbSource, w);
     s.updateCheckOnStart = pickBool(j.get("update"), "checkOnStart", d.updateCheckOnStart, w);
@@ -96,6 +97,10 @@ Settings settingsFromJson(const Json& j, std::vector<std::string>* w) {
     s.bootSound = pickEnum(boot, "sound", {"builtin", "custom", "off"}, d.bootSound, w);
     s.launchAnimation = pickEnum(boot, "launchAnimation", {"inferno", "era1", "era2", "era3", "era4", "era5", "random", "off"},
                                  d.launchAnimation, w);
+    const Json& look = j.get("appearance");
+    s.uiStyle = pickEnum(look, "uiStyle", {"default", "ps5", "ps3"}, d.uiStyle, w);
+    s.backgroundFx = pickEnum(look, "backgroundFx", {"theme", "galaxy", "wave", "aurora"}, d.backgroundFx, w);
+    s.rgbBorders = pickBool(look, "rgbBorders", d.rgbBorders, w);
     return s;
 }
 
@@ -123,6 +128,7 @@ Json settingsToJson(const Settings& s) {
     j.set("controller", c);
     Json n = Json::object();
     n.set("allowDownloads", Json::boolean(s.allowDownloads));
+    n.set("allowUnverifiedTls", Json::boolean(s.allowUnverifiedTls));
     j.set("network", n);
     Json cd = Json::object();
     cd.set("source", Json::string(s.cheatDbSource));
@@ -139,6 +145,11 @@ Json settingsToJson(const Settings& s) {
     boot.set("sound", Json::string(s.bootSound));
     boot.set("launchAnimation", Json::string(s.launchAnimation));
     j.set("boot", boot);
+    Json look = Json::object();
+    look.set("uiStyle", Json::string(s.uiStyle));
+    look.set("backgroundFx", Json::string(s.backgroundFx));
+    look.set("rgbBorders", Json::boolean(s.rgbBorders));
+    j.set("appearance", look);
     return j;
 }
 

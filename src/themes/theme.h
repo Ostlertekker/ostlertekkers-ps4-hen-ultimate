@@ -35,6 +35,12 @@ struct Theme {
     std::string soundMove, soundSelect, soundBack;
     std::string folder;       // where the theme file lives (for images/sounds)
     bool builtIn = true;
+    // Runtime appearance overlay (not persisted in the theme file; set per
+    // frame from Settings by applyAppearance()). Lets any theme be combined
+    // with a UI style, an animated background and rainbow focus borders.
+    std::string uiStyle = "default";      // default | ps5 | ps3
+    std::string backgroundFx = "theme";   // theme | galaxy | wave | aurora
+    bool rgbBorder = false;
 
     const std::string& name(const std::string& lang) const {
         return (lang == "de" && !nameDe.empty()) ? nameDe : nameEn;
@@ -52,5 +58,15 @@ Json themeToJson(const Theme& t);
 
 // Fallback used when no theme file can be loaded (never fails).
 Theme defaultTheme();
+
+// Overlays the appearance options (UI style, background FX, RGB borders) from
+// Settings onto a copy of the theme. PS5 = brighter, larger rounded cards;
+// PS3 = XMB-inspired: thin rows, small radius, cool translucent surfaces.
+// These only tweak existing render parameters, so every screen follows.
+Theme applyAppearance(const Theme& base, const std::string& uiStyle,
+                      const std::string& backgroundFx, bool rgbBorders);
+
+// A hue (0..1) -> fully saturated RGB. Used for animated rainbow borders.
+Color rainbow(float hue);
 
 }  // namespace henu

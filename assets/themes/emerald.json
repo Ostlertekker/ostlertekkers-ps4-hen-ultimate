@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "emerald",
+  "name": {
+    "de": "Smaragd",
+    "en": "Emerald"
+  },
+  "author": "OSTLERTEKKERS HEN",
+  "license": "GPL-3.0-or-later",
+  "category": "dark",
+  "mode": "dark",
+  "colors": {
+    "background": "#04140f",
+    "surface": "#13221d",
+    "surfaceAlt": "#063725",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#10d98a",
+    "accent2": "#5effc2",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#0a764c",
+      "#063423"
+    ],
+    [
+      "#2d8061",
+      "#063423"
+    ],
+    [
+      "#096743",
+      "#063423"
+    ],
+    [
+      "#266d53",
+      "#063423"
+    ],
+    [
+      "#085739",
+      "#063423"
+    ],
+    [
+      "#1f5a45",
+      "#063423"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "waves"
+  }
+}

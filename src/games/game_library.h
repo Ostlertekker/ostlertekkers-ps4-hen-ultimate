@@ -31,6 +31,7 @@ struct GameInfo {
     std::string iconPath;      // appmeta/icon0.png if present
     std::string appPath;       // e.g. /user/app/CUSA00001 or /mnt/ext0/user/app/...
     bool external = false;     // installed on the extended storage
+    bool fromQuery = false;    // found via the system install service (no metadata readable)
     // Decoded + downscaled icon (A8R8G8B8, kIconSize^2); empty if not loaded.
     std::shared_ptr<const std::vector<uint32_t>> icon;
 };
@@ -55,6 +56,9 @@ public:
     bool scanned() const { return scanned_; }
     const std::vector<GameInfo>& all() const { return games_; }
     const GameInfo* find(const std::string& titleId) const;
+    // Adds titles found by the install-service query (skips known ones).
+    // Returns how many were added.
+    size_t addQueried(const std::vector<GameInfo>& found);
     size_t gameCount() const;
     size_t homebrewCount() const;
 

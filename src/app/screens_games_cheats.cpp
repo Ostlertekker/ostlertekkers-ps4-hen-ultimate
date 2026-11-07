@@ -78,7 +78,15 @@ void GamesScreen::onEnter() {
     rebuild();
 }
 
+void GamesScreen::update(const UiContext&) {
+    // The install-service query adds titles in the background.
+    if (app_.games().all().size() != seenCount_) rebuild();
+}
+
+bool GamesScreen::animating() const { return app_.queryRunning(); }
+
 void GamesScreen::rebuild() {
+    seenCount_ = app_.games().all().size();
     const std::string key = focus_ < static_cast<int>(ids_.size()) ? ids_[static_cast<size_t>(focus_)] : "";
     std::vector<const GameInfo*> v;
     for (const auto& g : app_.games().all()) {
@@ -172,14 +180,21 @@ void GamesScreen::draw(const UiContext& ctx) {
         const Rect box{kMarginX, y, 1160, 1000 - y};
         drawPanel(r, t, box, t.cornerRadius);
         float yy = box.y + 34;
-        r.drawText(f.title, app_.t(total ? "games.noMatch" : "games.none"), box.x + 30, yy, t.text);
+        const bool searching = !total && app_.queryRunning();
+        r.drawText(f.title, searching ? app_.t("games.searching") : app_.t(total ? "games.noMatch" : "games.none"), box.x + 30, yy, t.text);
         yy += 64;
         std::string why;
-        if (!total) {
+        if (searching) {
+            why = app_.t("games.searchingHelp") + "\n" + std::to_string(app_.queryDone()) + " / " + std::to_string(app_.queryTotal());
+            const float frac = app_.queryTotal() ? static_cast<float>(app_.queryDone()) / app_.queryTotal() : 0.f;
+            r.fillRect({box.x + 30, box.y + box.h - 60, box.w - 60, 10}, withAlpha(t.text, 0.12f), 5);
+            r.fillRect({box.x + 30, box.y + box.h - 60, (box.w - 60) * frac, 10}, t.accent, 5);
+        } else if (!total) {
             const std::string& note = app_.gameScanNote();
             if (!app_.games().notes().empty()) why = app_.t("games.scanError") + " " + app_.games().notes().front();
             if (!note.empty()) why += (why.empty() ? "" : "\n") + app_.t("games.noSandboxEscape") + " " + note;
             if (why.empty()) why = app_.t("games.noneHelp");
+            why += "\n\n" + app_.t("games.queryHelp");
         }
         for (const auto& line : wrapText(r, f.body, why, box.w - 60)) {
             r.drawText(f.body, line, box.x + 30, yy, t.textMuted);
@@ -238,7 +253,7 @@ void GamesScreen::draw(const UiContext& ctx) {
     r.drawText(f.bodyBold, ellipsize(r, f.bodyBold, g->name, p.w - 56), p.x + 28, p.y + 28, t.text);
     std::vector<std::pair<std::string, std::string>> rows2 = {
         {"Title ID", g->titleId},
-        {app_.t("games.version"), g->version.empty() ? app_.t("common.unknown") : g->version},
+        {app_.t("games.version"), g->version.empty() ? app_.t(g->fromQuery ? "games.versionUnknown" : "common.unknown") : g->version},
         {app_.t("games.region"), toString(g->region)},
         {app_.t("games.storage"), app_.t(g->external ? "games.storage.ext" : "games.storage.int")},
     };

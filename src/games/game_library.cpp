@@ -11,6 +11,19 @@
 
 namespace henu {
 
+namespace {
+void sortGames(std::vector<GameInfo>& v) {
+    std::sort(v.begin(), v.end(), [](const GameInfo& a, const GameInfo& b) {
+        auto lower = [](std::string s) {
+            for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            return s;
+        };
+        return lower(a.name) < lower(b.name);
+    });
+}
+}  // namespace
+
+
 std::string higherVersion(const std::string& a, const std::string& b) {
     AppVersion va, vb;
     const bool oa = AppVersion::parse(a, va), ob = AppVersion::parse(b, vb);
@@ -99,15 +112,20 @@ Status GameLibrary::scan(IFileSystem& fs, const GamePaths& paths) {
             games_.push_back(std::move(g));
         }
     }
-    std::sort(games_.begin(), games_.end(), [](const GameInfo& a, const GameInfo& b) {
-        auto lower = [](std::string s) {
-            for (auto& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-            return s;
-        };
-        return lower(a.name) < lower(b.name);
-    });
+    sortGames(games_);
     if (!anyListed) return Status::fail(firstError.code, firstError.message);
     return Status::ok();
+}
+
+size_t GameLibrary::addQueried(const std::vector<GameInfo>& found) {
+    size_t n = 0;
+    for (const auto& g : found) {
+        if (find(g.titleId)) continue;
+        games_.push_back(g);
+        ++n;
+    }
+    if (n) sortGames(games_);
+    return n;
 }
 
 const GameInfo* GameLibrary::find(const std::string& titleId) const {

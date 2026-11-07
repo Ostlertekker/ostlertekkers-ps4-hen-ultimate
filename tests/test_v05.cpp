@@ -16,6 +16,7 @@
 #include "gfx/soft_renderer.h"
 #include "net/online.h"
 #include "platform/mem_fs.h"
+#include "themes/theme.h"
 #include "ui/logo.h"
 
 using namespace henu;
@@ -306,7 +307,32 @@ static void testGamesFromAppmetaOnly() {
     }
 }
 
+static void testAppearance() {
+    Theme base = defaultTheme();
+    // default style keeps the theme as-is but records the FX/border flags
+    Theme d = applyAppearance(base, "default", "galaxy", true);
+    CHECK(d.backgroundFx == "galaxy" && d.rgbBorder && backgroundIsAnimated(d));
+    CHECK(!backgroundIsAnimated(applyAppearance(base, "default", "theme", false)));
+    // PS5: larger radius, opaque-er surfaces, white focus
+    Theme ps5 = applyAppearance(base, "ps5", "theme", false);
+    CHECK(ps5.cornerRadius >= base.cornerRadius && ps5.cornerRadius >= 22);
+    CHECK(ps5.surfaceOpacity >= base.surfaceOpacity);
+    CHECK(ps5.focus.r == 255 && ps5.focus.g == 255 && ps5.focus.b == 255);
+    // PS3: small radius, more translucent
+    Theme ps3 = applyAppearance(base, "ps3", "wave", false);
+    CHECK(ps3.cornerRadius <= 8 && ps3.surfaceOpacity < base.surfaceOpacity);
+    CHECK(ps3.backgroundFx == "wave" && backgroundIsAnimated(ps3));
+    // rainbow spans the hue wheel and wraps
+    Color r0 = rainbow(0.f), r2 = rainbow(2.f / 6), r4 = rainbow(4.f / 6);
+    CHECK(r0.r == 255 && r0.g == 0);            // red
+    CHECK(r2.g == 255 && r2.r == 0);            // green
+    CHECK(r4.b == 255 && r4.g == 0);            // blue
+    Color wrap = rainbow(1.0f);                  // == rainbow(0)
+    CHECK(wrap.r == r0.r && wrap.g == r0.g && wrap.b == r0.b);
+}
+
 void runV05Tests() {
+    testAppearance();
     testGamesFromAppmetaOnly();
     testParallelRenderer();
     testCheatEdit();

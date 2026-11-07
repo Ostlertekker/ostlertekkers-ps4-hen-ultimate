@@ -215,6 +215,7 @@ Result<Platform> createPlatform() {
     p.audio = createPs4Audio();
     p.privilege = createPs4Privilege();
     p.launcher = createPs4Launcher();
+    p.appQuery = createPs4AppQuery();
     std::string netErr;
     p.net = createPs4Network(netErr);
     if (!p.net) std::printf("[henu] network unavailable: %s\n", netErr.c_str());

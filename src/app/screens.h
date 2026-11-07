@@ -64,7 +64,7 @@ public:
 
 private:
     enum Row { Language, ThemeRow, Animations, ConfirmButton, BootAnim, BootSound, LaunchAnim, Volume, BootPreview,
-               ImportWav, Reset, RowCount };
+               ImportWav, Appearance, Reset, RowCount };
     void importWav();
     void change(int delta);
     int focus_ = 0;
@@ -79,11 +79,14 @@ public:
     GamesScreen(App& app, bool homebrew);
     void onEnter() override;
     ScreenResult handle(const InputEvent& ev) override;
+    void update(const UiContext& ctx) override;
+    bool animating() const override;
     void draw(const UiContext& ctx) override;
     std::vector<std::pair<std::string, std::string>> hints() const override;
 
 private:
     void rebuild();
+    size_t seenCount_ = 0;     // library size at the last rebuild
     bool homebrew_;
     int filter_ = 0;          // 0 all, 1 favourites, 2 with cheats
     bool sortById_ = false;
@@ -130,6 +133,7 @@ private:
     size_t pending_ = 0;
     ListView list_;
     std::string error_;
+    ErrorCode errorCode_ = ErrorCode::None;
 };
 
 // ---------------------------------------------------------------- Cheat Center
@@ -199,6 +203,21 @@ private:
     int focus_ = 0, top_ = 0;
 };
 
+// Appearance: UI style (default/PS5/PS3), animated background, RGB borders.
+// Freely combinable with the active theme; changes apply live.
+class AppearanceScreen : public Screen {
+public:
+    explicit AppearanceScreen(App& app) : Screen(app) {}
+    ScreenResult handle(const InputEvent& ev) override;
+    void draw(const UiContext& ctx) override;
+    std::vector<std::pair<std::string, std::string>> hints() const override;
+
+private:
+    enum Row { UiStyle, BackgroundFx, RgbBorders, RowCount };
+    void change(int delta);
+    int focus_ = 0;
+};
+
 // ---------------------------------------------------------------- Info pages
 class GoldhenScreen : public Screen {
 public:
@@ -241,6 +260,7 @@ private:
     std::unique_ptr<NetJob> job_;
     ReleaseInfo rel_;
     std::string message_, savedPath_;
+    ErrorCode errorCode_ = ErrorCode::None;
 };
 
 // ---------------------------------------------------------------- Files

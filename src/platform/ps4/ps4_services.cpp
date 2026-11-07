@@ -37,6 +37,8 @@
 
 // ---------------------------------------------------------------- syscall
 // Indirect syscall (FreeBSD syscall 0), as in GoldHEN_Plugins_SDK Syscall.c.
+// On failure the kernel sets the carry flag and returns the errno in rax;
+// this wrapper returns -errno (the SDK stores it in errno and returns -1).
 extern "C" long henu_syscall(long num, ...);
 __asm__(
     ".att_syntax prefix\n"
@@ -48,7 +50,7 @@ __asm__(
     "  jb 1f\n"
     "  retq\n"
     "1:\n"
-    "  movq $-1, %rax\n"
+    "  negq %rax\n"
     "  retq\n");
 
 namespace henu {
@@ -122,8 +124,11 @@ public:
             }
             if (r == 0) henu_syscall(kGoldhenSyscall, kCmdUnjailbreak, &backup_);
             why += "goldhen-sdk v" + std::to_string(v) + ": jailbreak=" + std::to_string(r) + ", /user/app still closed; ";
+        } else if (v < 0) {
+            // 78 = ENOSYS: syscall 500 not installed (GoldHEN SDK not active for this process)
+            why += "goldhen-sdk: no answer (errno " + std::to_string(-v) + (v == -78 ? " ENOSYS" : "") + "); ";
         } else {
-            why += "goldhen-sdk: no answer; ";
+            why += "goldhen-sdk: version 0 (SDK command not supported); ";
         }
 #ifdef HENU_HAVE_LIBJBC
         // 3. libjbc
@@ -249,7 +254,24 @@ public:
         return run(url, maxBytes, sink, &status, false);
     }
 
+    void setAllowUnverifiedTls(bool allow) override { allowUnverified_ = allow; }
+    bool usedUnverifiedTls() const override { return usedUnverified_; }
+
 private:
+    // Called by libSceHttp during the TLS handshake with the result of the
+    // certificate check (OpenOrbis _types/http.h OrbisHttpsCallback). The
+    // OpenOrbis net_http sample always returns 0 (no check at all); here a
+    // failed check is only accepted after the user allowed it.
+    static int32_t sslCallback(int32_t, uint32_t verifyErr, void* const[], int32_t, void* user) {
+        auto* self = static_cast<Ps4Network*>(user);
+        if (verifyErr == 0) return 0;
+        self->lastVerifyErr_ = verifyErr;
+        if (self->allowUnverified_) {
+            self->usedUnverified_ = true;
+            return 0;
+        }
+        return -1;
+    }
     static std::string hex(int32_t v) {
         char b[16];
         std::snprintf(b, sizeof(b), "0x%08X", static_cast<unsigned>(v));
@@ -265,6 +287,8 @@ private:
             int32_t tpl = sceHttpCreateTemplate(http_, "OSTLERTEKKERS-HEN/0.5 (PlayStation 4)", ORBIS_HTTP_VERSION_1_1, 1);
             if (tpl < 0) return Status::fail(ErrorCode::NetworkError, "sceHttpCreateTemplate " + hex(tpl));
             sceHttpSetConnectTimeOut(tpl, 15u * 1000000u);
+            sceHttpsSetSslCallback(tpl, &Ps4Network::sslCallback, this);
+            lastVerifyErr_ = 0;
             int32_t conn = sceHttpCreateConnectionWithURL(tpl, url.c_str(), true);
             int32_t req = conn >= 0 ? sceHttpCreateRequestWithURL(conn, ORBIS_METHOD_GET, url.c_str(), 0) : conn;
             auto cleanup = [&]() {
@@ -277,8 +301,12 @@ private:
             int32_t ret = sceHttpSendRequest(req, nullptr, 0);
             if (ret < 0) {
                 cleanup();
+                if (lastVerifyErr_ != 0)
+                    return Status::fail(ErrorCode::CertificateError,
+                                        "TLS certificate not verified (verifyErr " + hex(static_cast<int32_t>(lastVerifyErr_)) +
+                                            ", sceHttpSendRequest " + hex(ret) + ")");
                 return Status::fail(ErrorCode::NetworkError, "sceHttpSendRequest " + hex(ret) +
-                                    " (no connection, DNS or TLS certificate problem)");
+                                    " (no connection or DNS problem)");
             }
             int32_t code = 0;
             sceHttpGetStatusCode(req, &code);
@@ -345,6 +373,8 @@ private:
 
     std::mutex m_;
     int32_t http_ = -1;
+    std::atomic<bool> allowUnverified_{false}, usedUnverified_{false};
+    uint32_t lastVerifyErr_ = 0;   // guarded by m_ (callback runs inside run())
 };
 
 }  // namespace
@@ -421,9 +451,65 @@ private:
     std::string fnName_;
 };
 
+// ---------------------------------------------------------------- app query
+// sceAppInstUtilInitialize once, then sceAppInstUtilAppExists(titleId, &flag)
+// (OpenOrbis include/orbis/AppInstUtil.h; call order as in Itemzflow
+// installpkg.cpp app_inst_util_init / app_inst_util_is_exists). Resolved at
+// run time like the launcher, because stub coverage is not guaranteed.
+class Ps4AppQuery : public IAppQuery {
+public:
+    Result<bool> isInstalled(const std::string& titleId) override {
+        if (!ready_) {
+            Status st = init();
+            if (!st) return Result<bool>::fail(st.error().code, st.error().message);
+        }
+        int32_t flag = 0;
+        const int32_t r = exists_(titleId.c_str(), &flag);
+        if (r != 0) {
+            char hex[16];
+            std::snprintf(hex, sizeof(hex), "0x%08X", static_cast<uint32_t>(r));
+            return Result<bool>::fail(ErrorCode::IoError, std::string("sceAppInstUtilAppExists ") + hex);
+        }
+        return Result<bool>::ok(flag != 0);
+    }
+
+private:
+    Status init() {
+        if (failed_) return Status::fail(ErrorCode::Unsupported, failReason_);
+        sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_APP_INST_UTIL);
+        const int32_t mod = static_cast<int32_t>(
+            sceKernelLoadStartModule("/system/common/lib/libSceAppInstUtil.sprx", 0, nullptr, 0, nullptr, nullptr));
+        void* fInit = nullptr;
+        void* fExists = nullptr;
+        if (mod < 0 || sceKernelDlsym(mod, "sceAppInstUtilInitialize", &fInit) != 0 ||
+            sceKernelDlsym(mod, "sceAppInstUtilAppExists", &fExists) != 0 || !fInit || !fExists) {
+            char hex[16];
+            std::snprintf(hex, sizeof(hex), "0x%08X", static_cast<uint32_t>(mod));
+            failed_ = true;
+            failReason_ = std::string("libSceAppInstUtil not usable (module ") + hex + ")";
+            return Status::fail(ErrorCode::Unsupported, failReason_);
+        }
+        const int32_t r = reinterpret_cast<int32_t (*)()>(fInit)();
+        if (r != 0) {
+            char hex[16];
+            std::snprintf(hex, sizeof(hex), "0x%08X", static_cast<uint32_t>(r));
+            failed_ = true;
+            failReason_ = std::string("sceAppInstUtilInitialize ") + hex;
+            return Status::fail(ErrorCode::Unsupported, failReason_);
+        }
+        exists_ = reinterpret_cast<int32_t (*)(const char*, int32_t*)>(fExists);
+        ready_ = true;
+        return Status::ok();
+    }
+    bool ready_ = false, failed_ = false;
+    std::string failReason_;
+    int32_t (*exists_)(const char*, int32_t*) = nullptr;
+};
+
 std::unique_ptr<IAudio> createPs4Audio() { return std::unique_ptr<IAudio>(new Ps4Audio); }
 std::unique_ptr<IPrivilege> createPs4Privilege() { return std::unique_ptr<IPrivilege>(new Ps4Privilege); }
 std::unique_ptr<ILauncher> createPs4Launcher() { return std::unique_ptr<ILauncher>(new Ps4Launcher); }
+std::unique_ptr<IAppQuery> createPs4AppQuery() { return std::unique_ptr<IAppQuery>(new Ps4AppQuery); }
 std::unique_ptr<INetwork> createPs4Network(std::string& err) {
     std::unique_ptr<Ps4Network> n(new Ps4Network);
     if (!n->init(err)) return nullptr;

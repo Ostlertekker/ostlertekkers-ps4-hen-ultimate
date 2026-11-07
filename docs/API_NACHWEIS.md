@@ -27,6 +27,8 @@ Zahlenwerte (Pixelformat `0x80000000`, lineares Tiling `1`, Vsync-Flip `1`) steh
 | P12 | Threads: `std::thread` / `std::mutex` (libc++) | OpenOrbis `samples/threading` | 🟡 v0.5.0 |
 | P13 | Spiel starten: `sceKernelLoadStartModule("/system/common/lib/libSceSystemService.sprx")` + `sceKernelDlsym` (die OpenOrbis-Stub-Bibliothek exportiert die Startfunktion nicht; Muster aus OpenOrbis `samples/using_library`), `sceUserServiceGetForegroundUser`, `sceLncUtilLaunchApp(titleId, NULL, &LncAppParam{size, user, 0, 0, LaunchApp_SkipSystemUpdate})` | OpenOrbis `include/orbis/SystemService.h`, `_types/sys_service.h`, `UserService.h`; Aufrufweise und Fehlercodes: Itemzflow `itemzflow/source/utils.cpp` (Launch_App), `include/defines.h` | 🟡 v0.6.0, auf Konsole ungetestet |
 | P14 | Mehrkern-Rendern: `std::thread`, 6 Threads (PS4-Apps haben 6 Jaguar-Kerne) | OpenOrbis `samples/threading` | 🟡 v0.5.1 |
+| P15 | Installierte Titel ohne Root: `sceSysmoduleLoadModuleInternal(APP_INST_UTIL)`, `sceAppInstUtilInitialize`, `sceAppInstUtilAppExists(titleId, &flag)` per `sceKernelDlsym` | OpenOrbis `include/orbis/AppInstUtil.h`, `_types/sysmodule.h`; Aufrufreihenfolge: Itemzflow `installpkg.cpp` | 🟡 v0.6.1, auf Konsole ungetestet |
+| P16 | Zertifikats-Rückruf: `sceHttpsSetSslCallback(template, cb, user)`, Rückgabe 0 = annehmen | OpenOrbis `Http.h`, `_types/http.h` (OrbisHttpsCallback), Beispiel `samples/net_http` (dort immer 0); hier nur nach Zustimmung | 🟡 v0.6.1 |
 
 ## Desktop-Plattform (`src/platform/sdl/`, nur Entwicklung)
 

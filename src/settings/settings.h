@@ -27,6 +27,7 @@ struct Settings {
     int repeatDelayMs = 350;
     int repeatRateMs = 90;
     bool allowDownloads = false;
+    bool allowUnverifiedTls = false;   // asked once, when the certificate check fails
     std::string cheatDbSource = "none";      // none | official_goldhen_repo | usb_zip
     bool updateCheckOnStart = false;
     std::string backupTarget = "internal";   // internal | usb
@@ -34,6 +35,10 @@ struct Settings {
     std::string bootAnimation = "inferno";   // inferno | era1..era5 | random | off
     std::string bootSound = "builtin";       // builtin | custom | off
     std::string launchAnimation = "inferno"; // game start: inferno | era1..era5 | random | off
+    // Appearance ("Darstellung" screen): freely combinable with any theme.
+    std::string uiStyle = "default";         // default | ps5 | ps3
+    std::string backgroundFx = "theme";      // theme | galaxy | wave | aurora
+    bool rgbBorders = false;                  // animated rainbow focus borders
 };
 
 // Invalid/unknown values are replaced by defaults (never fails on content);

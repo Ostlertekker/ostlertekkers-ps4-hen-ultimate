@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "plasma",
+  "name": {
+    "de": "Plasma",
+    "en": "Plasma"
+  },
+  "author": "OSTLERTEKKERS HEN",
+  "license": "GPL-3.0-or-later",
+  "category": "neon",
+  "mode": "dark",
+  "colors": {
+    "background": "#0c0320",
+    "surface": "#1b122d",
+    "surfaceAlt": "#2a1048",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#b14bff",
+    "accent2": "#2ad6ff",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#5e2790",
+      "#260f44"
+    ],
+    [
+      "#1a6487",
+      "#260f44"
+    ],
+    [
+      "#51217e",
+      "#260f44"
+    ],
+    [
+      "#175375",
+      "#260f44"
+    ],
+    [
+      "#441b6c",
+      "#260f44"
+    ],
+    [
+      "#154263",
+      "#260f44"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "particles"
+  }
+}

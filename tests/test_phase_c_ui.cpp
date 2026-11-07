@@ -5,7 +5,12 @@
 #include <cstdio>
 #include <string>
 
+#include <atomic>
+
 #include "app/app.h"
+#include <cstdlib>
+#include <unistd.h>
+#include "files/fs_util.h"
 #include "games/game_library.h"
 #include "check.h"
 #include "platform/posix_fs.h"
@@ -293,6 +298,97 @@ struct FakeLauncher : ILauncher {
 };
 }  // namespace
 
+namespace {
+struct CertFailNet : INetwork {
+    std::atomic<bool> allow{false};
+    std::atomic<int> calls{0};
+    Result<HttpResponse> get(const std::string&, size_t) override {
+        ++calls;
+        if (!allow) return Result<HttpResponse>::fail(ErrorCode::CertificateError, "TLS certificate not verified (verifyErr 0x00000002)");
+        HttpResponse r;
+        r.status = 200;
+        r.body = R"([{"tag_name":"build-9999","draft":false,"assets":[{"name":"IV0000-HENU00001_00-PS4HENULTIMATE00.pkg","size":4,"browser_download_url":"https://x/a.pkg"}]}])";
+        return Result<HttpResponse>::ok(r);
+    }
+    Status stream(const std::string& u, uint64_t m, const Sink& sink) override {
+        auto r = get(u, m);
+        if (!r) return Status::fail(r.error().code, r.error().message);
+        sink(r.value().body.data(), r.value().body.size(), r.value().body.size(), r.value().body.size());
+        return Status::ok();
+    }
+    void setAllowUnverifiedTls(bool a) override { allow = a; }
+};
+}  // namespace
+
+static void testUnverifiedTlsDialog() {
+    TestApp t(freshDataDir("tls"));
+    auto* net = new CertFailNet;
+    t.p.net.reset(net);
+    CHECK(t.app->init().isOk());
+    for (int i = 0; i < 600 && t.app->booting(); ++i) t.app->frame(1.0f / 60);
+    Settings s = t.app->settings();
+    s.allowDownloads = true;
+    CHECK(t.app->updateSettings(s));
+    t.app->goToSectionById("update");
+    auto settle = [&]() { for (int i = 0; i < 60; ++i) t.app->frame(1.0f / 60); };
+    t.press(Action::Confirm);            // check -> certificate error
+    settle();
+    CHECK(net->calls >= 1 && !t.app->settings().allowUnverifiedTls);
+    const int before = net->calls;
+    t.press(Action::Confirm);            // offers the dialog (default: cancel)
+    t.press(Action::Confirm);            // cancel -> nothing allowed
+    settle();
+    CHECK(!t.app->settings().allowUnverifiedTls && net->calls == before);
+    t.press(Action::Confirm);            // dialog again
+    t.press(Action::Left);
+    t.press(Action::Confirm);            // allow -> retry
+    settle();
+    CHECK(t.app->settings().allowUnverifiedTls);
+    CHECK(net->allow && net->calls > before);
+}
+
+namespace {
+struct FakeAppQuery : IAppQuery {
+    std::atomic<int> calls{0};
+    Result<bool> isInstalled(const std::string& id) override {
+        ++calls;
+        return Result<bool>::ok(id == "CUSA11111" || id == "CUSA33333");
+    }
+};
+}  // namespace
+
+static void testInstallQueryFallback() {
+    TestApp t(freshDataDir("query"));
+    // Own console root: cheat files exist, /user/app does not exist at all.
+    PosixFileSystem host;
+    char cwd[4096];
+    const std::string root = std::string(::getcwd(cwd, sizeof(cwd)) ? cwd : ".") + "/build/test-data/query-root";
+    if (std::system(("rm -rf '" + root + "'").c_str()) != 0) CHECK(false);
+    makeDirsUnchecked(host, root + "/data/GoldHEN/cheats/json");
+    host.writeFile(root + "/data/GoldHEN/cheats/json/CUSA11111_01.00.json",
+                   R"({"name":"Installed One","id":"CUSA11111","version":"01.00","process":"eboot.bin","mods":[{"name":"A","type":"checkbox","memory":[]}]})");
+    host.writeFile(root + "/data/GoldHEN/cheats/json/CUSA22222_01.00.json",
+                   R"({"name":"Not Installed","id":"CUSA22222","version":"01.00","process":"eboot.bin","mods":[{"name":"A","type":"checkbox","memory":[]}]})");
+    t.p.sysRoot = root;
+    t.p.dataRoot = "/data/OSTLERTEKKERS_HEN";
+    auto* q = new FakeAppQuery;
+    t.p.appQuery.reset(q);
+    CHECK(t.app->init().isOk());
+    // cached online list adds a third candidate with a name
+    t.app->cacheCheatTitles({{"CUSA33333", "From The List"}, {"CUSA22222", "Not Installed"}});
+    t.app->ensureScanned(true);
+    for (int i = 0; i < 300 && (t.app->queryRunning() || t.app->games().all().size() < 2); ++i) t.app->frame(1.0f / 60);
+    CHECK(!t.app->queryRunning());
+    CHECK(q->calls == 3);    // CUSA11111, CUSA22222 (deduplicated), CUSA33333
+    CHECK(t.app->games().all().size() == 2);
+    const GameInfo* a = t.app->games().find("CUSA11111");
+    const GameInfo* b = t.app->games().find("CUSA33333");
+    CHECK(a && a->fromQuery && a->name == "Installed One" && a->version.empty());
+    CHECK(b && b->name == "From The List");
+    CHECK(!t.app->games().find("CUSA22222"));
+    CHECK(t.app->gameScanNote().find("2 installed of 3") != std::string::npos);
+}
+
 static void testGameLaunch() {
     TestApp t(freshDataDir("launch"));
     auto* fl = new FakeLauncher;
@@ -328,6 +424,8 @@ static void testGameLaunch() {
 }
 
 void runPhaseCUiTests() {
+    testUnverifiedTlsDialog();
+    testInstallQueryFallback();
     testGameLaunch();
     testInputMapper();
     testFocus();

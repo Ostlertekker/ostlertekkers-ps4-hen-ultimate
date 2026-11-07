@@ -130,5 +130,5 @@ jobs:
           TAG="build-${{ github.run_number }}"
           gh release create "$TAG" *.pkg SHA256SUMS.txt docs/INSTALLATION.md docs/SYSTEM_THEME.md \
             --target "${{ github.sha }}" --prerelease \
-            --title "OSTLERTEKKERS HEN v0.6.0 – Build ${{ github.run_number }}" \
+            --title "OSTLERTEKKERS HEN v0.6.1 – Build ${{ github.run_number }}" \
             --notes "Automatisch gebaut aus ${{ github.sha }} mit OpenOrbis v0.5.4. Installation: INSTALLATION.md (USB-Stick, exFAT, PKG ins Hauptverzeichnis, GoldHEN -> Debug Settings -> Package Installer) oder in der App: Update Center -> Online-Update."

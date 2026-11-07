@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.6.1 – Spiele ohne GoldHEN-Freischaltung, Updater (2026-11-07), PKG-Version 01.05
+
+### Behoben / neu
+- **Spiele erscheinen auch, wenn GoldHEN den Sandbox-Zugriff verweigert** („goldhen-sdk: no answer“): Die App fragt den Installationsdienst der PS4 (`sceAppInstUtilAppExists`, kein Root nötig) nach jeder bekannten Title-ID – aus den Cheat-Dateien auf der Konsole und aus der GoldHEN-Cheat-Liste (wird beim Laden im Cheat Center gespeichert, ~5000 Titel). Läuft im Hintergrund mit Fortschrittsanzeige; Version bleibt dann unbekannt
+- **Updater / Cheats online**: Kann die PS4 das Server-Zertifikat nicht prüfen, meldet die App das jetzt mit Fehlercode und fragt einmal, ob sie trotzdem verbinden darf. Updates bleiben per SHA-256 geprüft, Cheat-Dateien per Format-Prüfung
+- GoldHEN-Diagnose zeigt jetzt den System-Fehlercode (z. B. `errno 78 ENOSYS` = SDK-Schnittstelle nicht aktiv)
+- Datenrennen beim Hintergrund-Abgleich (von ThreadSanitizer gefunden) behoben
+
 ## v0.6.0 – Spielstart mit Animation, System-Theme (2026-11-06), PKG-Version 01.04
 
 ### Hinzugefügt

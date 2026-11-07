@@ -218,7 +218,28 @@ int main(int argc, char** argv) {
     press(Action::Confirm);    press(Action::Left);  press(Action::Confirm);   settle(30);  capture("update_ready");
     section("diag");           capture("diag");
     section("settings");       press(Action::Down, 4);           capture("settings");
+    press(Action::Down, 6);    press(Action::Confirm);           capture("appearance_menu");
+    press(Action::Back);
     section("home");           capture("home_after");
+    // Appearance styles / backgrounds (set directly, then show the home screen).
+    auto look = [&](const std::string& style, const std::string& bg, bool rgb, const char* name) {
+        Settings s = app.settings();
+        s.uiStyle = style;
+        s.backgroundFx = bg;
+        s.rgbBorders = rgb;
+        app.updateSettings(s);
+        app.inject({Action::PrevSection, false});   // nudge section, force redraw
+        app.inject({Action::NextSection, false});
+        settle(40);
+        capture(name);
+    };
+    look("ps5", "theme", false, "style_ps5");
+    look("ps3", "wave", false, "style_ps3_wave");
+    look("default", "galaxy", true, "style_galaxy_rgb");
+    look("ps5", "aurora", false, "style_aurora");
+
+    // back to defaults for the boot capture
+    { Settings s = app.settings(); s.uiStyle = "default"; s.backgroundFx = "theme"; s.rgbBorders = false; app.updateSettings(s); }
     app.startBoot("inferno");  settle(150);                      capture("boot_inferno");
     return 0;
 }

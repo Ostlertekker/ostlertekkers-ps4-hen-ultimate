@@ -188,6 +188,13 @@ public:
     virtual Result<HttpResponse> get(const std::string& httpsUrl, size_t maxBytes) = 0;
     // Streams the body of a 200 response into sink. total = 0 if unknown.
     virtual Status stream(const std::string& httpsUrl, uint64_t maxBytes, const Sink& sink) = 0;
+    // When the console's certificate store cannot verify a server, requests
+    // fail with ErrorCode::CertificateError. Only after the user allowed it,
+    // such connections are accepted (downloads are still checked: SHA-256 for
+    // updates, format check for cheat files).
+    virtual void setAllowUnverifiedTls(bool) {}
+    // True if a connection since start was accepted without verification.
+    virtual bool usedUnverifiedTls() const { return false; }
 };
 
 // ---------------------------------------------------------------- Audio
@@ -221,6 +228,14 @@ public:
     virtual Status launch(const std::string& titleId) = 0;
 };
 
+// Asks the system install service whether a title is installed. Works
+// without leaving the app sandbox (PS4: sceAppInstUtilAppExists).
+class IAppQuery {
+public:
+    virtual ~IAppQuery() = default;
+    virtual Result<bool> isInstalled(const std::string& titleId) = 0;
+};
+
 // RAII helper.
 class ElevatedScope {
 public:
@@ -250,6 +265,7 @@ struct Platform {
     std::unique_ptr<IAudio> audio;   // may be null -> sound unavailable
     std::unique_ptr<IPrivilege> privilege;   // may be null -> no sandbox escape (desktop)
     std::unique_ptr<ILauncher> launcher;     // may be null -> games cannot be started
+    std::unique_ptr<IAppQuery> appQuery;     // may be null -> no install-service fallback
 
     std::string bundleRoot;   // read-only app files (assets), e.g. "/app0"
     std::string dataRoot;     // writable app data, e.g. "/data/OSTLERTEKKERS_HEN"

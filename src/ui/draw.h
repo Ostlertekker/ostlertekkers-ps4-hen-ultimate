@@ -60,6 +60,8 @@ std::string ellipsize(IRenderer& r, FontId f, const std::string& text, float max
 std::vector<std::string> wrapText(IRenderer& r, FontId f, const std::string& text, float maxWidth);
 
 void drawBackground(IRenderer& r, const Theme& t, double time, bool animate);
+// True when the theme's background FX animates (app must redraw every frame).
+bool backgroundIsAnimated(const Theme& t);
 void drawPanel(IRenderer& r, const Theme& t, const Rect& rc, float radius);
 // Small pill with text; returns its width.
 float drawPill(IRenderer& r, const Fonts& f, const std::string& text, float x, float y,

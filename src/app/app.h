@@ -3,7 +3,10 @@
 // screen stack per section and the frame loop.
 #pragma once
 
+#include <atomic>
 #include <map>
+#include <mutex>
+#include <thread>
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,7 +41,7 @@ struct AppOptions {
     bool bootSequence = false;   // play the boot animation + sound after init (main sets it)
 };
 
-constexpr const char* kAppVersion = "0.6.0";
+constexpr const char* kAppVersion = "0.6.1";
 #ifndef HENU_BUILD
 #define HENU_BUILD 0
 #endif
@@ -111,6 +114,14 @@ public:
     INetwork* network() { return platform_.net.get(); }
     IPrivilege* privilege() { return platform_.privilege.get(); }
     const std::string& gameScanNote() const { return gameScanNote_; }
+    // Install-service fallback (no sandbox escape needed): checks known title
+    // ids (local cheat files + cached GoldHEN cheat list) in the background.
+    void startInstalledQuery();
+    bool queryRunning() const { return queryRunning_; }
+    int queryDone() const { return queryDone_; }
+    int queryTotal() const { return queryTotal_; }
+    // Saves "TITLEID=Name" lines of the online cheat list for later queries.
+    void cacheCheatTitles(const std::vector<std::pair<std::string, std::string>>& titles);
     // Icon texture for an installed title (created on first use), 0 = none.
     TextureId iconTexture(const GameInfo& g);
 
@@ -145,6 +156,7 @@ private:
     I18n i18n_;
     ThemeCatalog themes_;
     const Theme* theme_ = nullptr;
+    Theme drawTheme_;   // theme_ with the appearance overlay, rebuilt each frame
     CapabilityRegistry caps_;
     std::unique_ptr<SettingsStore> store_;
     Settings settings_;
@@ -169,6 +181,15 @@ private:
     std::string launchStatus_;
     double bootStart_ = 0;
     std::string gameScanNote_;
+    // install-service query
+    std::thread queryThread_;
+    std::atomic<bool> queryRunning_{false}, queryCancel_{false};
+    std::atomic<int> queryDone_{0}, queryTotal_{0};
+    std::mutex queryM_;
+    std::vector<GameInfo> queryFound_;
+    std::string queryNote_;
+    std::atomic<bool> queryPending_{false};   // results not merged yet (set by the worker)
+    void mergeQueryResults();
     std::map<std::string, TextureId> icons_;
 };
 

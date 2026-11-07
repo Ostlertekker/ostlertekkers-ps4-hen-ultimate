@@ -45,6 +45,17 @@ THEMES = [
     # Light
     ("cloud", "Wolke", "Cloud", "light", "light", "#eef1f7", "#4b5bff", "#00a3c4", "none"),
     ("sand", "Sand", "Sand", "light", "light", "#f4efe6", "#b5651d", "#2f7d6d", "none"),
+    # --- v0.6.0 additions ---
+    ("blood-moon", "Blutmond", "Blood Moon", "neon", "dark", "#140305", "#ff1f3d", "#ff7a2a", "orb"),
+    ("inferno", "Inferno", "Inferno", "gaming", "dark", "#1a0702", "#ff5a1e", "#ffd23d", "orb"),
+    ("plasma", "Plasma", "Plasma", "neon", "dark", "#0c0320", "#b14bff", "#2ad6ff", "particles"),
+    ("venom", "Gift", "Venom", "gaming", "dark", "#06120a", "#39ff88", "#b6ff3c", "particles"),
+    ("sunset", "Sonnenuntergang", "Sunset", "ps5", "dark", "#180a14", "#ff6b9d", "#ffab5e", "waves"),
+    ("vaporwave", "Vaporwave", "Vaporwave", "neon", "dark", "#1a0f2e", "#ff71ce", "#01cdfe", "particles"),
+    ("emerald", "Smaragd", "Emerald", "dark", "dark", "#04140f", "#10d98a", "#5effc2", "waves"),
+    ("tangerine", "Mandarine", "Tangerine", "gaming", "dark", "#1a0d04", "#ff8c1a", "#ffd93d", "orb"),
+    ("ultraviolet", "Ultraviolett", "Ultraviolet", "ps5", "dark", "#0a041a", "#7b2fff", "#c77dff", "orb"),
+    ("steel-blue", "Stahlblau", "Steel Blue", "minimal", "dark", "#0a1016", "#5a9fd4", "#a3c9e8", "none"),
 ]
 
 

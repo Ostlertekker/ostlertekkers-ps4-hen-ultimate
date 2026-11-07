@@ -285,6 +285,7 @@ std::vector<std::pair<std::string, std::string>> SettingsScreen::hints() const {
     if (focus_ == Reset) return {{"@confirm", "hint.reset"}};
     if (focus_ == BootPreview) return {{"@confirm", "hint.play"}};
     if (focus_ == ImportWav) return {{"@confirm", "hint.import"}};
+    if (focus_ == Appearance) return {{"@confirm", "hint.open"}};
     return {{"<>", "hint.change"}};
 }
 
@@ -342,6 +343,8 @@ ScreenResult SettingsScreen::handle(const InputEvent& ev) {
                 app_.startBoot(a == "off" ? "random" : a);
             } else if (focus_ == ImportWav) {
                 importWav();
+            } else if (focus_ == Appearance) {
+                return ScreenResult::push(std::unique_ptr<Screen>(new AppearanceScreen(app_)));
             } else {
                 change(+1);
             }
@@ -386,11 +389,13 @@ void SettingsScreen::draw(const UiContext& ctx) {
         s.volume == 0 ? app_.t("settings.volumeOff") : std::to_string(s.volume) + " %",
         "",
         hasWav ? app_.t("settings.wav.present") : "",
+        app_.t("settings.uiStyle." + s.uiStyle),
         resetArmed_ ? app_.t("settings.resetArmed") : "",
     };
     const char* labels[RowCount] = {"settings.language", "settings.theme", "settings.animations",
                                     "settings.confirmButton", "settings.bootAnim", "settings.bootSound", "settings.launchAnim",
-                                    "settings.volume", "settings.bootPreview", "settings.importWav", "settings.reset"};
+                                    "settings.volume", "settings.bootPreview", "settings.importWav", "settings.appearance",
+                                    "settings.reset"};
 
     Rect hl{kMarginX, highlightY_, listW, rowH};
     r.fillRect(hl, withAlpha(th.surfaceAlt, 0.95f), 16);
@@ -399,7 +404,7 @@ void SettingsScreen::draw(const UiContext& ctx) {
     for (int i = 0; i < RowCount; ++i) {
         const float y = rowY0 + i * rowStep;
         const float ty = y + (rowH - 36) / 2;
-        const bool action = i == Reset || i == BootPreview || i == ImportWav;
+        const bool action = i == Reset || i == BootPreview || i == ImportWav || i == Appearance;
         if (i != focus_) r.fillRect({kMarginX, y, listW, rowH}, withAlpha(th.surface, th.surfaceOpacity * 0.85f), 16);
         r.drawText(f.bodyBold, app_.t(labels[i]), kMarginX + 32, ty, i == Reset ? th.error : th.text);
         if (!action) {

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "steel-blue",
+  "name": {
+    "de": "Stahlblau",
+    "en": "Steel Blue"
+  },
+  "author": "OSTLERTEKKERS HEN",
+  "license": "GPL-3.0-or-later",
+  "category": "minimal",
+  "mode": "dark",
+  "colors": {
+    "background": "#0a1016",
+    "surface": "#191e24",
+    "surfaceAlt": "#182a38",
+    "text": "#f4f6ff",
+    "textMuted": "#929bb1",
+    "accent": "#5a9fd4",
+    "accent2": "#a3c9e8",
+    "focus": "#ffffff",
+    "line": "#ffffff17",
+    "ok": "#48c98c",
+    "warn": "#e5b65e",
+    "error": "#e85c6a"
+  },
+  "tileGradients": [
+    [
+      "#325875",
+      "#172734"
+    ],
+    [
+      "#506577",
+      "#172734"
+    ],
+    [
+      "#2c4c66",
+      "#172734"
+    ],
+    [
+      "#445666",
+      "#172734"
+    ],
+    [
+      "#254157",
+      "#172734"
+    ],
+    [
+      "#384855",
+      "#172734"
+    ]
+  ],
+  "surfaceOpacity": 0.92,
+  "cornerRadius": 22,
+  "background": {
+    "type": "gradient",
+    "dim": 0.4
+  },
+  "animation": {
+    "speed": 1.0,
+    "focusScale": 1.05,
+    "ambient": "none"
+  }
+}

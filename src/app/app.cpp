@@ -13,7 +13,11 @@
 namespace henu {
 
 App::App(Platform& platform, AppOptions opts) : platform_(platform), opts_(opts) {}
-App::~App() { log_.flush(); }
+App::~App() {
+    queryCancel_ = true;
+    if (queryThread_.joinable()) queryThread_.join();
+    log_.flush();
+}
 
 const ModuleDef* App::module(const std::string& id) const {
     for (const auto& m : modules_)
@@ -212,6 +216,12 @@ SystemSnapshot App::systemInfo() {
 }
 
 void App::ensureScanned(bool force) {
+    // Cheat files first: their title ids are candidates for the install query.
+    if (force || !cheats_.scanned()) {
+        cheats_.scan(sysFs(), cheatRoot());
+        log_.info("cheat files: " + std::to_string(cheats_.files().size()) + ", errors: " +
+                  std::to_string(cheats_.errors().size()));
+    }
     if (force || !games_.scanned()) {
         // Installed titles live outside the app sandbox: read them with the
         // GoldHEN SDK escape for the duration of the scan only.
@@ -227,12 +237,115 @@ void App::ensureScanned(bool force) {
         for (const auto& n : games_.notes()) log_.warn("games: " + n);
         if (!gameScanNote_.empty()) log_.info("games: sandbox access = " + gameScanNote_);
         log_.info("games: " + std::to_string(games_.all().size()) + (st ? "" : " (" + st.error().message + ")"));
+        // Folders not readable (sandbox): ask the system install service.
+        if (games_.all().empty() && platform_.appQuery) startInstalledQuery();
     }
-    if (force || !cheats_.scanned()) {
-        cheats_.scan(sysFs(), cheatRoot());
-        log_.info("cheat files: " + std::to_string(cheats_.files().size()) + ", errors: " +
-                  std::to_string(cheats_.errors().size()));
+}
+
+void App::startInstalledQuery() {
+    if (!platform_.appQuery || queryRunning_) return;
+    if (queryThread_.joinable()) queryThread_.join();
+    // Candidates: title ids of local cheat files, then the cached online list.
+    std::vector<std::pair<std::string, std::string>> cand;
+    std::map<std::string, size_t> seen;
+    auto add = [&](const std::string& id, const std::string& name) {
+        if (id.size() != 9) return;
+        auto it = seen.find(id);
+        if (it != seen.end()) {
+            if (cand[it->second].second.empty()) cand[it->second].second = name;
+            return;
+        }
+        seen[id] = cand.size();
+        cand.emplace_back(id, name);
+    };
+    for (const auto& f : cheats_.files()) add(f.id.titleId, f.gameName);
+    auto cache = sysFs().readFile(platform_.dataRoot + "/cache/cheat_titles.txt", 4u << 20);
+    if (cache) {
+        const std::string& t = cache.value();
+        size_t pos = 0;
+        while (pos < t.size()) {
+            size_t eol = t.find('\n', pos);
+            if (eol == std::string::npos) eol = t.size();
+            const std::string line = t.substr(pos, eol - pos);
+            pos = eol + 1;
+            const size_t eq = line.find('=');
+            if (eq == 9) add(line.substr(0, 9), line.substr(10));
+        }
     }
+    queryTotal_ = static_cast<int>(cand.size());
+    queryDone_ = 0;
+    queryCancel_ = false;
+    if (cand.empty()) {
+        queryNote_ = "install query: no candidate title ids (no cheat files, no cached cheat list)";
+        log_.info(queryNote_);
+        return;
+    }
+    queryRunning_ = true;
+    log_.info("install query: checking " + std::to_string(cand.size()) + " title ids");
+    IAppQuery* q = platform_.appQuery.get();
+    queryThread_ = std::thread([this, q, cand]() {
+        std::vector<GameInfo> found;
+        std::string note;
+        int errors = 0;
+        for (const auto& c : cand) {
+            if (queryCancel_) break;
+            auto r = q->isInstalled(c.first);
+            ++queryDone_;
+            if (!r) {
+                if (++errors == 1) note = r.error().message;
+                if (r.error().code == ErrorCode::Unsupported) break;   // service not usable at all
+                continue;
+            }
+            if (!r.value()) continue;
+            GameInfo g;
+            g.titleId = c.first;
+            g.name = c.second.empty() ? c.first : c.second;
+            g.category = "gd";
+            g.appPath = "/user/app/" + c.first;
+            g.fromQuery = true;
+            found.push_back(std::move(g));
+        }
+        std::lock_guard<std::mutex> l(queryM_);
+        queryFound_ = std::move(found);
+        queryNote_ = "install query: " + std::to_string(queryFound_.size()) + " installed of " +
+                     std::to_string(queryDone_.load()) + " checked" + (errors ? ", " + std::to_string(errors) + " errors (" + note + ")" : "");
+        queryPending_ = true;
+        queryRunning_ = false;
+    });
+}
+
+void App::mergeQueryResults() {
+    std::vector<GameInfo> found;
+    std::string note;
+    {
+        std::lock_guard<std::mutex> l(queryM_);
+        if (!queryPending_) return;
+        queryPending_ = false;
+        found.swap(queryFound_);
+        note = queryNote_;
+    }
+    if (queryThread_.joinable()) queryThread_.join();
+    const size_t added = games_.addQueried(found);
+    log_.info(note + ", added " + std::to_string(added));
+    gameScanNote_ += (gameScanNote_.empty() ? "" : " | ") + note;
+    dirty_ = true;
+}
+
+void App::cacheCheatTitles(const std::vector<std::pair<std::string, std::string>>& titles) {
+    std::string out;
+    std::map<std::string, bool> seen;
+    for (const auto& t : titles) {
+        if (t.first.size() != 9 || seen.count(t.first)) continue;
+        seen[t.first] = true;
+        std::string name = t.second;
+        for (auto& ch : name) if (ch == '\n' || ch == '\r') ch = ' ';
+        out += t.first + "=" + name + "\n";
+    }
+    const std::string dir = platform_.dataRoot + "/cache";
+    makeDirs(sysFs(), *guard_, dir);
+    auto chk = guard_->check(dir + "/cheat_titles.txt", AccessKind::Write);
+    Status w = chk ? sysFs().writeFile(chk.value(), out) : Status::fail(chk.error().code, chk.error().message);
+    log_.info(w ? "cached " + std::to_string(seen.size()) + " cheat titles" : "caching cheat titles failed: " + w.error().message);
 }
 
 TextureId App::iconTexture(const GameInfo& g) {
@@ -398,6 +511,7 @@ bool App::frame(float dt) {
         }
         events.clear();
     }
+    if (queryPending_) mergeQueryResults();
     if (launch_) {
         double lt = time_ - launchStart_;
         if (!launchRequested_)
@@ -437,8 +551,13 @@ bool App::frame(float dt) {
 
     const bool animate = settings_.animations != "off";
     const float speedFactor = settings_.animations == "reduced" ? 0.5f : 1.0f;
-    UiContext ctx{*platform_.renderer, *theme_, fonts_, time_, dt, animate,
-                  theme_->animSpeed * speedFactor};
+    // Overlay appearance (UI style, animated background, RGB borders) onto the
+    // active theme once per frame; every screen draws from this.
+    drawTheme_ = applyAppearance(*theme_, settings_.uiStyle, settings_.backgroundFx, settings_.rgbBorders);
+    const bool bgAnimated = animate && backgroundIsAnimated(drawTheme_);
+    const bool rgbOn = animate && drawTheme_.rgbBorder;
+    UiContext ctx{*platform_.renderer, drawTheme_, fonts_, time_, dt, animate,
+                  drawTheme_.animSpeed * speedFactor};
     // A screen that was busy before update() (animation, network job) gets one
     // more frame after it settles, so its final state is shown.
     Screen* before = &top();
@@ -446,9 +565,11 @@ bool App::frame(float dt) {
     before->update(ctx);
     if (&top() != before) dirty_ = true;
 
-    // Redraw only when something changed: input, animation, toast.
+    // Redraw only when something changed: input, animation, toast. Animated
+    // backgrounds and rainbow borders force a continuous redraw.
     const bool toastVisible = time_ < toastUntil_ && !toastText_.empty();
-    const bool needDraw = dirty_ || wasAnimating || top().animating() || toastVisible || toastVisible != toastShown_;
+    const bool needDraw = dirty_ || wasAnimating || top().animating() || toastVisible ||
+                          toastVisible != toastShown_ || bgAnimated || rgbOn;
     drawn_ = needDraw;
     if (!needDraw) {
         if (time_ >= nextFlush_) { log_.flush(); nextFlush_ = time_ + 5; }
@@ -458,12 +579,17 @@ bool App::frame(float dt) {
     toastShown_ = toastVisible;
 
     IRenderer& r = *platform_.renderer;
-    r.beginFrame(theme_->background);
-    // The background is static per theme: render once, then reuse.
-    const uint64_t bgKey = static_cast<uint64_t>(std::hash<std::string>{}(theme_->id)) | 1u;
-    if (!r.useCachedLayer(bgKey)) {
-        drawBackground(r, *theme_, time_, animate);
-        r.endLayer();
+    r.beginFrame(drawTheme_.background);
+    if (bgAnimated) {
+        drawBackground(r, drawTheme_, time_, animate);   // per-frame, not cached
+    } else {
+        // Static background: render once per (theme, style) and reuse.
+        const uint64_t bgKey = (static_cast<uint64_t>(std::hash<std::string>{}(theme_->id)) << 2 ^
+                                std::hash<std::string>{}(settings_.uiStyle)) | 1u;
+        if (!r.useCachedLayer(bgKey)) {
+            drawBackground(r, drawTheme_, time_, animate);
+            r.endLayer();
+        }
     }
     top().draw(ctx);
     drawChrome(ctx);

@@ -34,6 +34,7 @@ ScreenResult withInternet(App& app, std::function<void()> onYes) {
         app.toast(app.t("online.noNetwork"));
         return ScreenResult::none();
     }
+    app.network()->setAllowUnverifiedTls(app.settings().allowUnverifiedTls);
     if (app.settings().allowDownloads) {
         onYes();
         return ScreenResult::none();
@@ -43,6 +44,20 @@ ScreenResult withInternet(App& app, std::function<void()> onYes) {
             Settings s = app.settings();
             s.allowDownloads = true;
             if (app.updateSettings(s)) onYes();
+        })));
+}
+
+// The console could not verify the server certificate. Asked once; after a
+// yes the connection is accepted and retry runs (downloads stay checked).
+ScreenResult offerUnverifiedTls(App& app, const std::string& detail, std::function<void()> retry) {
+    return ScreenResult::push(std::unique_ptr<Screen>(new ConfirmScreen(
+        app, app.t("online.tlsTitle"), app.t("online.tlsText") + "\n\n" + detail, app.t("online.tlsYes"), [&app, retry]() {
+            Settings s = app.settings();
+            s.allowUnverifiedTls = true;
+            if (!app.updateSettings(s)) return;
+            if (app.network()) app.network()->setAllowUnverifiedTls(true);
+            app.log().warn("user allowed connections without certificate verification");
+            retry();
         })));
 }
 }  // namespace
@@ -69,6 +84,7 @@ void OnlineCheatsScreen::startIndex() {
     job_.reset(new NetJob);
     phase_ = Phase::Index;
     error_.clear();
+    errorCode_ = ErrorCode::None;
     job_->start([net](NetJob& job) -> Status {
         for (const char* fmt : {"json", "shn", "mc4"}) {
             std::string body;
@@ -95,8 +111,18 @@ void OnlineCheatsScreen::update(const UiContext&) {
                 entries_.insert(entries_.end(), part.begin(), part.end());
             }
             app_.log().info("online cheat index: " + std::to_string(entries_.size()) + " files");
+            // Remember the titles; if the game folders are not readable, they
+            // are matched against the install service right away.
+            std::vector<std::pair<std::string, std::string>> titles;
+            titles.reserve(entries_.size());
+            for (const auto& e : entries_) titles.emplace_back(e.titleId, e.name);
+            app_.cacheCheatTitles(titles);
+            bool onlyQueried = true;
+            for (const auto& g : app_.games().all()) if (!g.fromQuery) { onlyQueried = false; break; }
+            if (onlyQueried) app_.startInstalledQuery();
         } else {
             error_ = st.error().message;
+            errorCode_ = st.error().code;
             app_.log().warn("online cheat index: " + error_);
         }
     } else if (phase_ == Phase::File) {
@@ -192,7 +218,11 @@ ScreenResult OnlineCheatsScreen::handle(const InputEvent& ev) {
     }
     if (job_) return ScreenResult::none();
     if (entries_.empty()) {
-        if (ev.action == Action::Confirm) return withInternet(app_, [this]() { startIndex(); });
+        if (ev.action == Action::Confirm) {
+            if (errorCode_ == ErrorCode::CertificateError && !app_.settings().allowUnverifiedTls)
+                return offerUnverifiedTls(app_, error_, [this]() { startIndex(); });
+            return withInternet(app_, [this]() { startIndex(); });
+        }
         return ScreenResult::none();
     }
     if (list_.handle(ev.action)) return ScreenResult::none();
@@ -269,7 +299,9 @@ void OnlineCheatsScreen::draw(const UiContext& ctx) {
         float yy = box.y + 34;
         r.drawText(f.title, error_.empty() ? app_.t("online.start") : app_.t("common.failed"), box.x + 30, yy, error_.empty() ? t.text : t.error);
         yy += 64;
-        block(ctx, error_.empty() ? app_.t("online.startHelp") : error_ + "\n\n" + app_.t("online.errorHelp"), box.x + 30, yy, box.w - 60,
+        block(ctx, error_.empty() ? app_.t("online.startHelp")
+                       : error_ + "\n\n" + (errorCode_ == ErrorCode::CertificateError && !app_.settings().allowUnverifiedTls
+                                                  ? app_.t("online.tlsHint") : app_.t("online.errorHelp")), box.x + 30, yy, box.w - 60,
               t.textMuted, box.y + box.h - 30);
     } else {
         list_.draw(r, t, f, {kMarginX, y, 1150, 1000 - y}, ctx.time, app_.t(filter_.empty() ? "online.noneInstalled" : "online.noneForGame"));
@@ -335,10 +367,12 @@ void UpdateScreen::update(const UiContext&) {
     if (!st) {
         state_ = State::Error;
         message_ = st.error().message;
+        errorCode_ = st.error().code;
         app_.log().warn("update: " + message_);
         job_.reset();
         return;
     }
+    errorCode_ = ErrorCode::None;
     if (state_ == State::Checking) {
         std::string text;
         {
@@ -403,6 +437,8 @@ ScreenResult UpdateScreen::handle(const InputEvent& ev) {
                 app_, app_.t("update.download"), app_.t("update.confirm") + "\n" + rel_.pkgName + " (" + formatBytes(rel_.pkgSize) + ")",
                 app_.t("update.downloadDo"), [this]() { download(); })));
         }
+        if (state_ == State::Error && errorCode_ == ErrorCode::CertificateError && !app_.settings().allowUnverifiedTls)
+            return offerUnverifiedTls(app_, message_, [this]() { check(); });
         return withInternet(app_, [this]() { check(); });
     }
     if (ev.action == Action::Context) {
@@ -446,8 +482,16 @@ void UpdateScreen::draw(const UiContext& ctx) {
         case State::Available: status = app_.t("update.state.available"); sc = t.ok; break;
         case State::UpToDate: status = app_.t("update.state.uptodate"); sc = t.ok; break;
         case State::Downloading: status = app_.t("update.state.downloading"); break;
-        case State::Ready: status = app_.t("update.state.ready"); sc = t.ok; break;
-        case State::Error: status = app_.t("common.failed") + ": " + message_; sc = t.error; break;
+        case State::Ready:
+            status = app_.t("update.state.ready");
+            if (app_.network() && app_.network()->usedUnverifiedTls()) status += "\n" + app_.t("online.tlsUsed");
+            sc = t.ok;
+            break;
+        case State::Error:
+            status = app_.t("common.failed") + ": " + message_;
+            if (errorCode_ == ErrorCode::CertificateError && !app_.settings().allowUnverifiedTls) status += "\n\n" + app_.t("online.tlsHint");
+            sc = t.error;
+            break;
     }
     block(ctx, status, p.x + 28, yy, p.w - 56, sc, p.y + p.h - 60);
     if (job_) {

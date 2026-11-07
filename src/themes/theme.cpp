@@ -1,6 +1,8 @@
 // OSTLERTEKKERS HEN - themes/theme.cpp
 #include "themes/theme.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <set>
 
@@ -243,6 +245,67 @@ Json themeToJson(const Theme& t) {
     an.set("ambient", Json::string(t.ambient));
     j.set("animation", an);
     return j;
+}
+
+namespace {
+Color withA(Color c, float a) {
+    float v = std::fmax(0.f, std::fmin(1.f, a)) * 255;
+    c.a = static_cast<uint8_t>(v + 0.5f);
+    return c;
+}
+Color blend(Color a, Color b, float t) {
+    auto l = [t](uint8_t x, uint8_t y) {
+        float v = x + (static_cast<float>(y) - x) * t;
+        return static_cast<uint8_t>(v < 0 ? 0 : (v > 255 ? 255 : v + 0.5f));
+    };
+    return {l(a.r, b.r), l(a.g, b.g), l(a.b, b.b), l(a.a, b.a)};
+}
+}  // namespace
+
+Color rainbow(float hue) {
+    hue -= std::floor(hue);
+    const float h = hue * 6.f;
+    const int i = static_cast<int>(h);
+    const float f = h - i;
+    const uint8_t v = 255, p = 0;
+    const uint8_t q = static_cast<uint8_t>(255 * (1 - f));
+    const uint8_t t = static_cast<uint8_t>(255 * f);
+    switch (i % 6) {
+        case 0: return {v, t, p, 255};
+        case 1: return {q, v, p, 255};
+        case 2: return {p, v, t, 255};
+        case 3: return {p, q, v, 255};
+        case 4: return {t, p, v, 255};
+        default: return {v, p, q, 255};
+    }
+}
+
+Theme applyAppearance(const Theme& base, const std::string& uiStyle,
+                      const std::string& backgroundFx, bool rgbBorders) {
+    Theme t = base;
+    t.uiStyle = uiStyle;
+    t.backgroundFx = backgroundFx;
+    t.rgbBorder = rgbBorders;
+    if (uiStyle == "ps5") {
+        // Clean, bright, big rounded cards.
+        t.cornerRadius = std::max(22.f, base.cornerRadius + 4);
+        t.surfaceOpacity = std::min(1.0f, base.surfaceOpacity + 0.15f);
+        t.surface = blend(base.surface, base.background, -0.05f);
+        t.focus = {255, 255, 255, 255};
+        t.focusScale = 1.06f;
+        t.line = withA(base.text, 0.14f);
+    } else if (uiStyle == "ps3") {
+        // XMB-inspired: thin rows, tight corners, cool translucent surfaces.
+        t.cornerRadius = 6.f;
+        t.surfaceOpacity = std::max(0.25f, base.surfaceOpacity * 0.55f);
+        t.accent = blend(base.accent, Color{90, 150, 255, 255}, 0.45f);
+        t.accent2 = blend(base.accent2, Color{150, 200, 255, 255}, 0.4f);
+        t.text = {240, 244, 255, 255};
+        t.focus = {255, 255, 255, 255};
+        t.focusScale = 1.03f;
+        t.line = withA(Color{200, 220, 255, 255}, 0.18f);
+    }
+    return t;
 }
 
 }  // namespace henu

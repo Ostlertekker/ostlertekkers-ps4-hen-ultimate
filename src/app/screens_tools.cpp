@@ -161,6 +161,76 @@ void ThemesScreen::draw(const UiContext& ctx) {
     }
 }
 
+// =================================================================== Appearance
+namespace {
+std::string cycleVal(const std::vector<std::string>& opts, const std::string& cur, int delta) {
+    const int n = static_cast<int>(opts.size());
+    for (int i = 0; i < n; ++i)
+        if (opts[static_cast<size_t>(i)] == cur) return opts[static_cast<size_t>(((i + delta) % n + n) % n)];
+    return opts.front();
+}
+}  // namespace
+
+void AppearanceScreen::change(int delta) {
+    Settings s = app_.settings();
+    switch (focus_) {
+        case UiStyle: s.uiStyle = cycleVal({"default", "ps5", "ps3"}, s.uiStyle, delta); break;
+        case BackgroundFx: s.backgroundFx = cycleVal({"theme", "galaxy", "wave", "aurora"}, s.backgroundFx, delta); break;
+        case RgbBorders: s.rgbBorders = !s.rgbBorders; break;
+        default: return;
+    }
+    app_.updateSettings(s);   // applies live
+}
+
+ScreenResult AppearanceScreen::handle(const InputEvent& ev) {
+    switch (ev.action) {
+        case Action::Up: focus_ = (focus_ + RowCount - 1) % RowCount; break;
+        case Action::Down: focus_ = (focus_ + 1) % RowCount; break;
+        case Action::Left: change(-1); break;
+        case Action::Right:
+        case Action::Confirm: change(focus_ == RgbBorders ? 1 : +1); break;
+        case Action::Back: return ScreenResult::pop();
+        default: break;
+    }
+    return ScreenResult::none();
+}
+
+std::vector<std::pair<std::string, std::string>> AppearanceScreen::hints() const {
+    return {{"@confirm", "appearance.change"}};
+}
+
+void AppearanceScreen::draw(const UiContext& ctx) {
+    IRenderer& r = ctx.renderer;
+    const Theme& th = ctx.theme;
+    const Fonts& f = ctx.fonts;
+    const Settings& s = app_.settings();
+    drawPageHeader(ctx, app_, app_.t("settings.appearance"), app_.t("appearance.sub"));
+
+    const float listW = 1180, rowY0 = 330, rowStep = 96, rowH = 84;
+    const char* labels[RowCount] = {"appearance.uiStyle", "appearance.background", "appearance.rgbBorders"};
+    std::string values[RowCount] = {
+        app_.t("settings.uiStyle." + s.uiStyle),
+        app_.t("appearance.bg." + s.backgroundFx),
+        s.rgbBorders ? app_.t("common.on") : app_.t("common.off"),
+    };
+    const char* subs[RowCount] = {"appearance.uiStyle.sub", "appearance.background.sub", "appearance.rgbBorders.sub"};
+
+    for (int i = 0; i < RowCount; ++i) {
+        const float y = rowY0 + i * rowStep;
+        const Rect row{kMarginX, y, listW, rowH};
+        r.fillRect(row, withAlpha(th.surface, th.surfaceOpacity * (i == focus_ ? 1.0f : 0.8f)), th.cornerRadius);
+        if (i == focus_) drawFocusRing(r, th, row, th.cornerRadius, ctx.time);
+        r.drawText(f.bodyBold, app_.t(labels[i]), row.x + 30, y + 16, th.text);
+        r.drawText(f.small, app_.t(subs[i]), row.x + 30, y + 50, th.textMuted);
+        const float vx = row.x + listW - 32;
+        r.drawText(f.bodyBold, values[i], vx - 28, y + 24, th.accent, TextAlign::Right);
+        const float vw = r.measureText(f.bodyBold, values[i]);
+        r.drawText(f.bodyBold, "<", vx - 28 - vw - 20, y + 24, withAlpha(th.text, i == focus_ ? 0.9f : 0.3f), TextAlign::Right);
+        r.drawText(f.bodyBold, ">", vx, y + 24, withAlpha(th.text, i == focus_ ? 0.9f : 0.3f), TextAlign::Right);
+    }
+    r.drawText(f.small, app_.t("appearance.live"), kMarginX, rowY0 + RowCount * rowStep + 20, th.textMuted);
+}
+
 // =================================================================== GoldHEN (read-only)
 
 void GoldhenScreen::onEnter() {

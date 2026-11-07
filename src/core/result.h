@@ -18,6 +18,7 @@ enum class ErrorCode {
     Unsupported,       // no verified interface on this system
     NetworkError,
     IntegrityError,    // checksum mismatch
+    CertificateError,  // TLS server certificate could not be verified
     Cancelled,
 };
 
