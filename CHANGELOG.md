@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.2 – Modul-Auflösung & Updater-Hinweis (2026-11-07)
+
+### Behoben
+- **Installierte Spiele / Spielstart**: Der Konsolen-Log zeigte `0x80020002` (ENOENT) – die App-Sandbox darf `/system/common/lib/*.sprx` nicht per absolutem Pfad öffnen. Die System-Bibliotheken (libSceAppInstUtil, libSceSystemService) werden jetzt zusätzlich über die bereits geladene Modulliste aufgelöst (`sceKernelGetModuleList`/`sceKernelGetModuleInfo`, reines OpenOrbis-SDK, kein Exploit-Code). Scheitert der Pfad-Load, wird das per `sceSysmoduleLoadModuleInternal` geladene Modul anhand des Dateinamens gefunden
+- **Online-Updater „HTTP 404"**: Ursache ist ein **privates** GitHub-Repo – GitHub liefert für private Repos ohne Login 404. Lösung: Repo öffentlich schalten (Settings → Danger Zone → Change visibility → Public). Updater-Code bleibt unverändert, zieht Prereleases korrekt
+- Leer-Anzeige in „Meine Spiele" nennt jetzt klar die GoldHEN-Voraussetzung und den manuellen Fallback (`cheat_titles.txt`, Zeilen `ID=Name`)
+
 ## v0.6.1 – Spiele ohne GoldHEN-Freischaltung, Updater (2026-11-07), PKG-Version 01.05
 
 ### Behoben / neu

@@ -338,7 +338,7 @@
   "games.cheatFile1": "CHEAT",
   "games.scanError": "Read error:",
   "games.noSandboxEscape": "Access check (please send a photo to the developer):",
-  "games.noneHelp": "No installed titles found. GoldHEN must be loaded so the app may read /user/app.",
+  "games.noneHelp": "No installed titles found. The automatic list needs an active GoldHEN (sandbox lifted) so the app may read installed games. Alternatively, create cheat_titles.txt (lines ID=Name) on the USB stick - those titles are always shown.",
   "games.storage": "Storage",
   "games.storage.ext": "Extended storage",
   "games.storage.int": "Internal storage",

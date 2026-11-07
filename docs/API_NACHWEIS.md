@@ -29,6 +29,7 @@ Zahlenwerte (Pixelformat `0x80000000`, lineares Tiling `1`, Vsync-Flip `1`) steh
 | P14 | Mehrkern-Rendern: `std::thread`, 6 Threads (PS4-Apps haben 6 Jaguar-Kerne) | OpenOrbis `samples/threading` | 🟡 v0.5.1 |
 | P15 | Installierte Titel ohne Root: `sceSysmoduleLoadModuleInternal(APP_INST_UTIL)`, `sceAppInstUtilInitialize`, `sceAppInstUtilAppExists(titleId, &flag)` per `sceKernelDlsym` | OpenOrbis `include/orbis/AppInstUtil.h`, `_types/sysmodule.h`; Aufrufreihenfolge: Itemzflow `installpkg.cpp` | 🟡 v0.6.1, auf Konsole ungetestet |
 | P16 | Zertifikats-Rückruf: `sceHttpsSetSslCallback(template, cb, user)`, Rückgabe 0 = annehmen | OpenOrbis `Http.h`, `_types/http.h` (OrbisHttpsCallback), Beispiel `samples/net_http` (dort immer 0); hier nur nach Zustimmung | 🟡 v0.6.1 |
+| P17 | Modul-Auflösung ohne Dateizugriff: scheitert `sceKernelLoadStartModule` mit einem absoluten `/system/common/lib/*.sprx`-Pfad (Sandbox, ENOENT `0x80020002`), wird das bereits per `sceSysmoduleLoadModuleInternal` geladene Modul über `sceKernelGetModuleList` + `sceKernelGetModuleInfo` am Dateinamen gefunden und dessen Handle an `sceKernelDlsym` gegeben | OpenOrbis `include/orbis/libkernel.h`, `_types/kernel.h` (OrbisKernelModuleInfo) | 🟡 v0.6.2, auf Konsole ungetestet; kein Exploit-/Kernel-Code |
 
 ## Desktop-Plattform (`src/platform/sdl/`, nur Entwicklung)
 

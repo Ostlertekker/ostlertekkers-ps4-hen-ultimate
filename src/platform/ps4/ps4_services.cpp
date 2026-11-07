@@ -377,6 +377,45 @@ private:
     uint32_t lastVerifyErr_ = 0;   // guarded by m_ (callback runs inside run())
 };
 
+// ---------------------------------------------------------------- module resolve
+// Resolve a handle for a system library so its symbols can be read with
+// sceKernelDlsym. Two documented OpenOrbis routes, in order:
+//   1) sceKernelLoadStartModule by absolute path - works when the process is
+//      allowed to open /system/common/lib (e.g. after GoldHEN has lifted the
+//      sandbox). Returns a negative value (ENOENT 0x80020002) otherwise.
+//   2) When the library is already mapped (e.g. a sysmodule loaded through
+//      sceSysmoduleLoadModuleInternal), find it in the loaded-module list by
+//      file name and return that handle - no file-system access needed.
+// Both sceKernelGetModuleList and sceKernelGetModuleInfo are plain OpenOrbis
+// libkernel SDK calls (include/orbis/libkernel.h); nothing here touches the
+// kernel exploit or GoldHEN internals. `outDetail` carries the last numeric
+// result for an honest error message. Returns a usable handle or -1.
+int32_t resolveSystemModule(const char* absPath, const char* baseName,
+                            uint32_t* outDetail) {
+    const int32_t byPath = static_cast<int32_t>(
+        sceKernelLoadStartModule(absPath, 0, nullptr, 0, nullptr, nullptr));
+    if (outDetail) *outDetail = static_cast<uint32_t>(byPath);
+    if (byPath >= 0) return byPath;
+
+    OrbisKernelModule handles[256];
+    std::memset(handles, 0, sizeof(handles));
+    size_t count = 0;
+    const int32_t lst = sceKernelGetModuleList(handles, 256, &count);
+    if (lst != 0) {
+        if (outDetail) *outDetail = static_cast<uint32_t>(lst);
+        return -1;
+    }
+    for (size_t i = 0; i < count; ++i) {
+        OrbisKernelModuleInfo info;
+        std::memset(&info, 0, sizeof(info));
+        info.size = sizeof(info);
+        if (sceKernelGetModuleInfo(handles[i], &info) != 0) continue;
+        if (std::strcmp(info.name, baseName) == 0)
+            return static_cast<int32_t>(handles[i]);
+    }
+    return -1;   // keep the LoadStartModule result in *outDetail for the message
+}
+
 }  // namespace
 
 // ---------------------------------------------------------------- launcher
@@ -410,11 +449,12 @@ class Ps4Launcher : public ILauncher {
 public:
     Status launch(const std::string& titleId) override {
         if (!fn_) {
-            const int32_t mod = static_cast<int32_t>(
-                sceKernelLoadStartModule("/system/common/lib/libSceSystemService.sprx", 0, nullptr, 0, nullptr, nullptr));
+            uint32_t detail = 0;
+            const int32_t mod = resolveSystemModule(
+                "/system/common/lib/libSceSystemService.sprx", "libSceSystemService.sprx", &detail);
             if (mod < 0) {
                 char hex[16];
-                std::snprintf(hex, sizeof(hex), "0x%08X", static_cast<uint32_t>(mod));
+                std::snprintf(hex, sizeof(hex), "0x%08X", detail);
                 return Status::fail(ErrorCode::Unsupported, std::string("libSceSystemService.sprx: ") + hex);
             }
             void* addr = nullptr;
@@ -477,14 +517,15 @@ private:
     Status init() {
         if (failed_) return Status::fail(ErrorCode::Unsupported, failReason_);
         sceSysmoduleLoadModuleInternal(ORBIS_SYSMODULE_INTERNAL_APP_INST_UTIL);
-        const int32_t mod = static_cast<int32_t>(
-            sceKernelLoadStartModule("/system/common/lib/libSceAppInstUtil.sprx", 0, nullptr, 0, nullptr, nullptr));
+        uint32_t detail = 0;
+        const int32_t mod = resolveSystemModule(
+            "/system/common/lib/libSceAppInstUtil.sprx", "libSceAppInstUtil.sprx", &detail);
         void* fInit = nullptr;
         void* fExists = nullptr;
         if (mod < 0 || sceKernelDlsym(mod, "sceAppInstUtilInitialize", &fInit) != 0 ||
             sceKernelDlsym(mod, "sceAppInstUtilAppExists", &fExists) != 0 || !fInit || !fExists) {
             char hex[16];
-            std::snprintf(hex, sizeof(hex), "0x%08X", static_cast<uint32_t>(mod));
+            std::snprintf(hex, sizeof(hex), "0x%08X", detail);
             failed_ = true;
             failReason_ = std::string("libSceAppInstUtil not usable (module ") + hex + ")";
             return Status::fail(ErrorCode::Unsupported, failReason_);
